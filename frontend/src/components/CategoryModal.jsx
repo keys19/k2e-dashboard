@@ -170,8 +170,8 @@ function CategoryModal({ initialHeader = "", initialContent = "", language, init
                 </div>
               )}
 
-              <label className="block text-sm mb-1 font-medium">Upload Files:</label>
-              <div
+              {/* <label className="block text-sm mb-1 font-medium">Upload Files:</label> */}
+              {/* <div
                 ref={dropRef}
                 onDrop={handleFileDrop}
                 onDragOver={preventDefault}
@@ -185,7 +185,7 @@ function CategoryModal({ initialHeader = "", initialContent = "", language, init
                 <ul className="text-xs text-gray-600 list-disc list-inside">
                   {selectedFiles.map((f, i) => <li key={i}>{f.name}</li>)}
                 </ul>
-              )}
+              )} */}
             </>
           )}
 

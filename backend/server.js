@@ -23,7 +23,10 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 
 app.use(express.json());
-
+app.use((req, res, next) => {
+  console.log(`[${req.method}] ${req.originalUrl}`);
+  next();
+});
 app.use('/students', studentRoutes); 
 app.use('/attendance', attendanceRoutes);
 app.use('/assessments', assessmentRoutes);

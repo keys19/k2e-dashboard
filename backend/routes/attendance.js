@@ -28,7 +28,8 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
   const { student_id, date, status, month, country } = req.body;
 
-  if (!student_id || !date || !status || !month || !country) {
+  if (!student_id || !date || status === undefined || status === null || !month || !country) {
+
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
@@ -49,7 +50,7 @@ router.post('/', async (req, res) => {
       id: uuidv4(),
       student_id,
       date,
-      status,
+      status: status === "" ? null : status,
       month,
       country,
       group_id: student.group_id
@@ -61,26 +62,96 @@ router.post('/', async (req, res) => {
 });
 
 // PUT update attendance status
+// router.put('/:id', async (req, res) => {
+//   const { id } = req.params;
+//   const { status } = req.body;
+//   console.log("PUT /attendance/:id", { id, status }); // Add this line
+
+
+// if (status === "" || status === null || status === undefined || (typeof status === "string" && status.trim() === "")) {
+//   const { error } = await supabase
+//     .from('attendance_entries')
+//     .update({ status: null }) // Clears the status
+//     .eq('id', id);
+
+//   if (error) {
+//     console.error("Supabase update error (clearing):", error);
+//     return res.status(500).json({ error: error.message });
+//   }
+
+//   return res.json({ message: "Status cleared successfully" });
+// }
+
+
+//   if (!['P', 'A', 'H'].includes(status)) {
+//     return res.status(400).json({ error: 'Invalid status value' });
+//   }
+
+//   const { error } = await supabase
+//     .from('attendance_entries')
+//     .update({ status })
+//     .eq('id', id);
+
+//   if (error) {
+//     console.error("Supabase update error:", error);
+//     return res.status(500).json({ error: error.message });
+//   }
+
+//   res.json({ message: 'Attendance updated successfully' });
+// });
+
 router.put('/:id', async (req, res) => {
   const { id } = req.params;
-  const { status } = req.body;
+  let status = req.body.status ?? null;
+  // Normalize: empty string or whitespace = null
+  if (typeof status === 'string' && status.trim() === '') {
+    
+    status = null;
+  }
+  if (status === null) {
+    const { error } = await supabase
+      .from('attendance_entries')
+      .update({ status: null })
+      .eq('id', id);
 
-  if (!['P', 'A', 'H'].includes(status)) {
-    return res.status(400).json({ error: 'Invalid status value' });
+    if (error) {
+      
+      return res.status(500).json({ error: error.message });
+    }
+
+    return res.json({ message: "Status cleared successfully" });
   }
 
+  if (!['P', 'A', 'H'].includes(status)) {
+    
+    return res.status(400).json({ error: 'Invalid status value' });
+  }
   const { error } = await supabase
     .from('attendance_entries')
     .update({ status })
     .eq('id', id);
 
   if (error) {
-    console.error("Supabase update error:", error);
+    
     return res.status(500).json({ error: error.message });
   }
 
   res.json({ message: 'Attendance updated successfully' });
 });
+
+
+
+// Delete attendance entry
+// router.delete("/:id", async (req, res) => {
+//   const { id } = req.params;
+//   try {
+//     await supabase.from("attendance_entries").delete().eq("id", id);
+//     res.status(200).json({ message: "Deleted" });
+//   } catch (err) {
+//     console.error("Delete failed", err);
+//     res.status(500).json({ error: "Delete failed" });
+//   }
+// });
 
 // Fill missing holidays for a given month
 router.post('/fill-holidays', async (req, res) => {
