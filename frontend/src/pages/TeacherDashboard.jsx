@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import LoadingScreen from '@/components/LoadingScreen';
 
 const COLORS = ['#00C49F', '#FFBB28', '#FF8042', '#0088FE', '#a855f7', '#ef4444'];
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -158,7 +159,7 @@ function TeacherDashboard() {
     )
   ), [moodPieData]);
 
-  if (loading) return <div className="flex justify-center items-center h-screen">Loading...</div>;
+  if (loading) return <div className="flex justify-center items-center h-screen"><LoadingScreen /></div>;
   if (error) return <div className="flex justify-center items-center h-screen text-red-500">{error}</div>;
 
   return (
