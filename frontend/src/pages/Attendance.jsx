@@ -6,6 +6,7 @@ import axios from "axios";
 import Sidebar from "../components/Sidebar";
 import AttendanceTable from "../components/AttendanceTable";
 import { Button } from "@/components/ui/button";
+import LoadingScreen from "../components/LoadingScreen";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -19,24 +20,52 @@ const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 function Attendance() {
   const [entries, setEntries] = useState([]);
   const [students, setStudents] = useState([]);
-  const [month, setMonth] = useState("April 2025");
-  const [groupId, setGroupId] = useState("");
+  const [month, setMonth] = useState(localStorage.getItem('attendanceMonth') || "April 2025");
+  const [groupId, setGroupId] = useState(localStorage.getItem('attendanceGroupId') || "");
   const [groupOptions, setGroupOptions] = useState([]);
+  const [groupsLoading, setGroupsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const { user } = useUser();
 
+
+  // useEffect(() => {
+  //   if (!user?.id) return;
+  //   axios
+  //     .get(`${BASE_URL}/groups/for-teacher`, {
+  //       params: { clerk_user_id: user.id },
+  //     })
+  //     .then((res) => {
+  //       setGroupOptions(res.data);
+  //       if (res.data.length > 0) {
+  //           const storedGroupId = localStorage.getItem('attendanceGroupId');
+  //           const validGroup = res.data.find(g => g.id === storedGroupId);
+  //           setGroupId(validGroup ? validGroup.id : res.data[0].id);
+  //         }      
+  //       })
+  //     .catch((err) => console.error("Error fetching teacher's groups", err));
+  // }, [user]);
+
   useEffect(() => {
-    if (!user?.id) return;
-    axios
-      .get(`${BASE_URL}/groups/for-teacher`, {
-        params: { clerk_user_id: user.id },
-      })
-      .then((res) => {
-        setGroupOptions(res.data);
-        if (res.data.length > 0) setGroupId(res.data[0].id);
-      })
-      .catch((err) => console.error("Error fetching teacher's groups", err));
-  }, [user]);
+  if (!user?.id) return;
+
+  setGroupsLoading(true);
+  axios
+    .get(`${BASE_URL}/groups/for-teacher`, {
+      params: { clerk_user_id: user.id },
+    })
+    .then((res) => {
+      setGroupOptions(res.data);
+      const stored = localStorage.getItem('attendanceGroupId');
+      const validGroup = res.data.find((g) => g.id === stored);
+      setGroupId(validGroup ? validGroup.id : res.data[0]?.id || '');
+    })
+    .catch((err) => {
+      console.error("Error fetching teacher's groups", err);
+    })
+    .finally(() => {
+      setGroupsLoading(false);
+    });
+}, [user]);
 
   useEffect(() => {
     if (!groupId) return;
@@ -96,7 +125,13 @@ function Attendance() {
               </DropdownMenuTrigger>
               <DropdownMenuContent>
                 {["April 2025", "May 2025", "June 2025", "July 2025"].map((m) => (
-                  <DropdownMenuItem key={m} onClick={() => setMonth(m)}>
+                  <DropdownMenuItem
+                    key={m}
+                    onClick={() => {
+                      setMonth(m);
+                      localStorage.setItem('attendanceMonth', m);
+                    }}
+                  >
                     {m}
                   </DropdownMenuItem>
                 ))}
@@ -115,7 +150,13 @@ function Attendance() {
               </DropdownMenuTrigger>
               <DropdownMenuContent>
                 {groupOptions.map((g) => (
-                  <DropdownMenuItem key={g.id} onClick={() => setGroupId(g.id)}>
+                  <DropdownMenuItem
+                    key={g.id}
+                    onClick={() => {
+                      setGroupId(g.id);
+                      localStorage.setItem('attendanceGroupId', g.id);
+                    }}
+                  >
                     {g.name}
                   </DropdownMenuItem>
                 ))}
@@ -124,11 +165,14 @@ function Attendance() {
           </div>
         </div>
 
-        {groupOptions.length === 0 && (
-          <p className="text-red-500 mb-4">
-            No groups assigned to you. Please contact admin.
-          </p>
-        )}
+        {groupsLoading ? (
+  <div className="flex justify-center items-center h-screen"><LoadingScreen /></div>
+) : groupOptions.length === 0 ? (
+  <p className="text-red-500 mb-4">
+    No groups assigned to you. Please contact admin.
+  </p>
+) : null}
+
 
         <AttendanceTable
           entries={entries}

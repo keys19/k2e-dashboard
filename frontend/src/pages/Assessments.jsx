@@ -48,11 +48,17 @@ function getWeeksInMonth(monthYear) {
 
 function Assessments() {
   const [entries, setEntries] = useState([]);
-  const [month, setMonth] = useState("June 2025");
-  const [language, setLanguage] = useState("Arabic");
+  const [month, setMonth] = useState(() => {
+  return localStorage.getItem("lastSelectedMonth") || "June 2025";
+});
+  const [language, setLanguage] = useState(() => {
+  return localStorage.getItem("lastSelectedLanguage") || "Arabic";
+});
   const [editStates, setEditStates] = useState({});
   const [students, setStudents] = useState([]);
-  const [view, setView] = useState("monthly");
+  const [view, setView] = useState(() => {
+  return localStorage.getItem("lastSelectedView") || "monthly";
+});
   const [week, setWeek] = useState("");
   const [weekList, setWeekList] = useState([]);
   const [lessonPlans, setLessonPlans] = useState([]);
@@ -98,11 +104,25 @@ const [studentsRes, assessmentsRes, lessonPlanRes] = await Promise.all([
     setLessonPlans(lessonPlanRes.data);
   };
 
+  // const fetchGroups = async () => {
+  //   const res = await axios.get(`${BASE_URL}/groups`);
+  //   setGroupOptions(res.data);
+  //   setGroupId(res.data[0]?.id || "");
+  // };
   const fetchGroups = async () => {
-    const res = await axios.get(`${BASE_URL}/groups`);
-    setGroupOptions(res.data);
+  const res = await axios.get(`${BASE_URL}/groups`);
+  setGroupOptions(res.data);
+
+  const storedGroupId = localStorage.getItem("lastSelectedGroupId");
+  const validGroup = res.data.find((g) => g.id === storedGroupId);
+
+  if (validGroup) {
+    setGroupId(validGroup.id);
+  } else {
     setGroupId(res.data[0]?.id || "");
-  };
+  }
+};
+
 
   useEffect(() => {
     fetchGroups();
@@ -201,7 +221,13 @@ const [studentsRes, assessmentsRes, lessonPlanRes] = await Promise.all([
         <h1 className="text-2xl font-semibold mb-4">Assessments</h1>
 
         <div className="flex flex-wrap gap-4 mb-4">
-          <Select value={view} onValueChange={setView}>
+          <Select
+            value={view}
+            onValueChange={(val) => {
+              setView(val);
+              localStorage.setItem("lastSelectedView", val);
+            }}
+          >
             <SelectTrigger className="w-[120px]">
               <SelectValue placeholder="View" />
             </SelectTrigger>
@@ -211,7 +237,13 @@ const [studentsRes, assessmentsRes, lessonPlanRes] = await Promise.all([
             </SelectContent>
           </Select>
 
-          <Select value={month} onValueChange={setMonth}>
+          <Select
+            value={month}
+            onValueChange={(val) => {
+              setMonth(val);
+              localStorage.setItem("lastSelectedMonth", val);
+            }}
+          >
             <SelectTrigger className="w-[140px]">
               <SelectValue placeholder="Month" />
             </SelectTrigger>
@@ -235,7 +267,13 @@ const [studentsRes, assessmentsRes, lessonPlanRes] = await Promise.all([
             </Select>
           )}
 
-          <Select value={language} onValueChange={setLanguage}>
+          <Select
+            value={language}
+            onValueChange={(val) => {
+              setLanguage(val);
+              localStorage.setItem("lastSelectedLanguage", val);
+            }}
+          >
             <SelectTrigger className="w-[120px]">
               <SelectValue placeholder="Language" />
             </SelectTrigger>
@@ -245,7 +283,13 @@ const [studentsRes, assessmentsRes, lessonPlanRes] = await Promise.all([
             </SelectContent>
           </Select>
 
-          <Select value={groupId} onValueChange={setGroupId}>
+          <Select
+            value={groupId}
+            onValueChange={(val) => {
+              setGroupId(val);
+              localStorage.setItem("lastSelectedGroupId", val);
+            }}
+          >
             <SelectTrigger className="w-[200px]">
               <SelectValue placeholder="Group" />
             </SelectTrigger>

@@ -1,6 +1,5 @@
-
-
-
+// TeacherDashboard.jsx
+// Description: Teacher dashboard page showing attendance, assessments, and mood charts
 import { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import Sidebar from '../components/Sidebar';
@@ -28,6 +27,7 @@ function TeacherDashboard() {
   const [weeklyAttendance, setWeeklyAttendance] = useState([]);
   const [monthlyAssessment, setMonthlyAssessment] = useState([]);
   const [moodSummary, setMoodSummary] = useState({});
+  const [moodType, setMoodType] = useState('month');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -90,7 +90,7 @@ function TeacherDashboard() {
         const [attendanceRes, assessmentRes, moodRes] = await Promise.all([
           axios.get(`${BASE_URL}/stats/attendance/weekly?group_id=${selectedGroup}&week_start=${getCurrentWeekMonday()}`),
           axios.get(`${BASE_URL}/stats/assessments/monthly-categories?group_id=${selectedGroup}&month=${getCurrentMonthString()}`),
-          axios.get(`${BASE_URL}/stats/mood-summary?month=${getCurrentMonthString()}`)
+          axios.get(`${BASE_URL}/stats/mood-summary?type=${moodType}&month=${getCurrentMonthString()}`)
         ]);
 
         const attendance = Array.isArray(attendanceRes.data)
@@ -109,7 +109,7 @@ function TeacherDashboard() {
     };
 
     fetchData();
-  }, [selectedGroup]);
+  }, [selectedGroup, moodType]);
 
   const moodTranslation = {
     Excellent: 'Excellent',
@@ -189,16 +189,31 @@ function TeacherDashboard() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Mood Dashboard with Filter */}
           <div className="bg-white p-4 rounded shadow col-span-1">
-            <h2 className="text-lg font-semibold mb-2">Mood Dashboard</h2>
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-lg font-semibold">Mood Dashboard</h2>
+              <Select value={moodType} onValueChange={setMoodType}>
+                <SelectTrigger className="w-28 text-sm border-gray-300 focus:ring-1 focus:ring-blue-500">
+                  <SelectValue placeholder="Select" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="today">Today</SelectItem>
+                  <SelectItem value="week">This Week</SelectItem>
+                  <SelectItem value="month">This Month</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             {moodChart}
           </div>
 
+          {/* Weekly Attendance */}
           <div className="bg-white p-4 rounded shadow col-span-1">
             <h2 className="text-lg font-semibold mb-2">Attendance This Week</h2>
             {attendanceChart}
           </div>
-          {/* English Assessment Card */}
+
+          {/* English Assessment */}
           <div className="bg-white p-4 rounded shadow" style={{ width: '320px', height: '360px' }}>
             <h2 className="text-lg font-semibold mb-2">English Assessments</h2>
             {monthlyAssessment.length === 0 ? (
@@ -216,7 +231,7 @@ function TeacherDashboard() {
             )}
           </div>
 
-          {/* Arabic Assessment Card */}
+          {/* Arabic Assessment */}
           <div className="bg-white p-4 rounded shadow" style={{ width: '340px', height: '260px' }}>
             <h2 className="text-lg font-semibold mb-2">Arabic Assessments</h2>
             {monthlyAssessment.length === 0 ? (
@@ -233,8 +248,6 @@ function TeacherDashboard() {
               </ResponsiveContainer>
             )}
           </div>
-
-
         </div>
       </div>
     </div>

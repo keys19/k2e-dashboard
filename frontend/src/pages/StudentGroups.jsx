@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import AddStudentModal from '../components/AddStudentModal';
 import AddGroupModal from '../components/AddGroupModal';
 import Sidebar from '../components/Sidebar';
-
+import LoadingScreen from '../components/LoadingScreen';
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 function StudentGroups() {
@@ -18,6 +18,8 @@ function StudentGroups() {
   const [formData, setFormData] = useState({});
   const [showStudentModal, setShowStudentModal] = useState(false);
   const [showGroupModal, setShowGroupModal] = useState(false);
+  const [studentsLoading, setStudentsLoading] = useState(true);
+
 
   useEffect(() => {
     if (!isLoaded || !user?.id) return;
@@ -36,18 +38,34 @@ function StudentGroups() {
     }
   };
 
+  // const fetchStudents = async () => {
+  //   try {
+  //     const res = await axios.get(`${BASE_URL}/students/for-teacher`, {
+  //       params: { clerk_user_id: user.id },
+  //     });
+  //     console.log('📦 students:', res.data);
+  //     setStudents(Array.isArray(res.data) ? res.data : []);
+  //   } catch (err) {
+  //     console.error("❌ Failed to fetch students:", err);
+  //     setStudents([]);
+  //   }
+  // };
+
   const fetchStudents = async () => {
-    try {
-      const res = await axios.get(`${BASE_URL}/students/for-teacher`, {
-        params: { clerk_user_id: user.id },
-      });
-      console.log('📦 students:', res.data);
-      setStudents(Array.isArray(res.data) ? res.data : []);
-    } catch (err) {
-      console.error("❌ Failed to fetch students:", err);
-      setStudents([]);
-    }
-  };
+  setStudentsLoading(true);
+  try {
+    const res = await axios.get(`${BASE_URL}/students/for-teacher`, {
+      params: { clerk_user_id: user.id },
+    });
+    console.log('📦 students:', res.data);
+    setStudents(Array.isArray(res.data) ? res.data : []);
+  } catch (err) {
+    console.error("❌ Failed to fetch students:", err);
+    setStudents([]);
+  } finally {
+    setStudentsLoading(false);
+  }
+};
 
   const startEdit = (id) => {
     const s = students.find((s) => s.id === id);
@@ -101,7 +119,13 @@ function StudentGroups() {
               </tr>
             </thead>
             <tbody>
-              {students.length === 0 ? (
+              {studentsLoading ? (
+              <tr>
+                <td colSpan="5" className="py-6 text-center">
+                  <div className="flex justify-center items-center h-screen"><LoadingScreen /></div>;
+                </td>
+              </tr>
+            ) : students.length === 0 ? (
                 <tr>
                   <td colSpan="5" className="text-center py-6 text-gray-400">
                     No students found.
