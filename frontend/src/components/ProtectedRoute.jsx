@@ -8,8 +8,10 @@ export default function ProtectedRoute({ children, allowedRole }) {
   const role = user?.publicMetadata?.role;
 
   if (!isSignedIn) return <Navigate to="/dashboard" />;
-  if (allowedRole && role !== allowedRole)
-    return <Navigate to={`/${role}/dashboard`} />; // redirect to correct dashboard
-
+  if (allowedRole && role !== allowedRole) {
+    return role
+      ? <Navigate to={`/${role}/dashboard`} />
+      : <Navigate to="/dashboard" />;
+  }
   return children;
 }

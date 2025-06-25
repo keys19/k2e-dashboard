@@ -14,6 +14,11 @@ import StudentGroups from './pages/StudentGroups';
 import LandingPage from './pages/LandingPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import AutoGrader from './pages/AutoGrader';
+import Quizzes     from './pages/Quizzes';
+import QuizBuilder from './pages/QuizBuilder';
+import TakeQuiz from './pages/TakeQuiz';
+import QuizResults from './pages/QuizResults';
+
 
 function RoleRedirect() {
   const { user } = useUser();
@@ -141,8 +146,57 @@ function App() {
         }
       />
 
+      <Route
+        path="/teacher/quizzes"
+        element={
+          <ProtectedRoute allowedRole="teacher">
+            <Quizzes />
+          </ProtectedRoute>
+        }
+      />
+ 
+      {/* create */}
+      <Route
+        path="/teacher/quizzes/new"
+        element={
+          <ProtectedRoute allowedRole="teacher">
+            <QuizBuilder mode="new" />
+          </ProtectedRoute>
+        }
+      />
+ 
+      {/* edit */}
+      <Route
+        path="/teacher/quizzes/:id/edit"
+        element={
+          <ProtectedRoute allowedRole="teacher">
+            <QuizBuilder mode="edit" />
+          </ProtectedRoute>
+       }
+      />
+
+      <Route
+        path="/teacher/quizzes/:id/take"
+        element={
+          <ProtectedRoute allowedRole="teacher">
+            <TakeQuiz />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/teacher/quizzes/:id/results"
+        element={
+          <ProtectedRoute allowedRole="teacher">
+            <QuizResults />
+          </ProtectedRoute>
+        }
+      />
+
       {/* Landing or fallback */}
       <Route path="/" element={<LandingPage />} />
+
+      
     </Routes>
   );
 }

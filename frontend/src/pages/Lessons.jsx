@@ -1,138 +1,71 @@
-// Lessons.jsx - Parents
-import React, { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { useUser } from '@clerk/clerk-react';
-import StudentSidebar from '../components/StudentSidebar';
-import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem
-} from '@/components/ui/select';
-import { ChevronDown } from 'lucide-react';
+import Sidebar from '@/components/Sidebar';
+import { PlusCircle, Loader2 } from 'lucide-react';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-function Lessons() {
-  const { user } = useUser();
-  const [cachedPlans, setCachedPlans] = useState({ English: {}, Arabic: {} });
-  const [language, setLanguage] = useState('English');
-  const [expandedMonths, setExpandedMonths] = useState([]);
-
-  const recentMonths = Array.from({ length: 6 }, (_, i) => {
-    const date = new Date();
-    date.setMonth(date.getMonth() - i);
-    return date.toLocaleString('default', { month: 'long', year: 'numeric' });
-  });
-
-  const groupByWeek = (plans) => {
-    const grouped = {};
-    if (!Array.isArray(plans)) return grouped;
-    for (const plan of plans) {
-      const weekLabel = plan.week || 'General';
-      if (!grouped[weekLabel]) grouped[weekLabel] = [];
-      grouped[weekLabel].push(plan);
-    }
-    return grouped;
-  };
+export default function Quizzes() {
+  const nav        = useNavigate();
+  const [quizzes, setQuizzes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error,   setError]   = useState(null);
 
   useEffect(() => {
-    if (!user?.id) return;
-
-    const fetchUncachedMonths = async () => {
-      const updatedCache = { ...cachedPlans };
-      const promises = [];
-
-      for (const month of recentMonths) {
-        if (!updatedCache[language][month]) {
-          promises.push(
-            axios
-              .get(`${BASE_URL}/student-dashboard/lessons`, {
-                params: {
-                  clerk_user_id: user.id,
-                  month,
-                  language
-                }
-              })
-              .then(res => {
-                updatedCache[language][month] = res.data || [];
-              })
-              .catch(err => {
-                console.error(`❌ Failed to fetch for ${month} (${language}):`, err);
-                updatedCache[language][month] = [];
-              })
-          );
-        }
-      }
-
-      await Promise.all(promises);
-      setCachedPlans(updatedCache);
-    };
-
-    fetchUncachedMonths();
-  }, [user, language]);
-
-  const toggleMonth = (month) => {
-    setExpandedMonths((prev) =>
-      prev.includes(month) ? prev.filter((m) => m !== month) : [...prev, month]
-    );
-  };
+    axios.get(`${BASE_URL}/quizzes`)
+      .then(res => setQuizzes(res.data))
+      .catch(()  => setError('Failed to fetch quizzes'))
+      .finally(() => setLoading(false));
+  }, []);
 
   return (
-    <div className="flex">
-      <StudentSidebar />
-      <div className="flex-1 p-6">
-        <h1 className="text-2xl font-bold mb-4">Lesson Plans</h1>
+    <div className="flex h-screen overflow-hidden">
+      <Sidebar />
 
-        <div className="mb-6 w-48">
-          <Select value={language} onValueChange={setLanguage}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Language" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="English">English</SelectItem>
-              <SelectItem value="Arabic">Arabic</SelectItem>
-            </SelectContent>
-          </Select>
+      {/* main content */}
+      <div className="flex-1 p-8 space-y-8 overflow-y-auto">
+        {/* header row */}
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold">Quizzes</h1>
+          <button
+            onClick={() => nav('/teacher/quizzes/new')}
+            className="flex items-center gap-2 bg-[#0072e5] hover:bg-[#005dbe] text-white px-4 py-2 rounded"
+          >
+            <PlusCircle size={18} /> Create quiz
+          </button>
         </div>
 
-        {recentMonths.map((month) => (
-          <div key={month} className="mb-4 ">
-            <Button
-              
-              className="w-full flex h-12 justify-between items-center text-lg text-black font-semibold bg-blue-50 hover:bg-gray-50"
-              onClick={() => toggleMonth(month)}
-            >
-              <span>{month}</span>
-              <ChevronDown className={`transition-transform ${expandedMonths.includes(month) ? 'rotate-180' : ''}`} />
-            </Button>
+        {/* existing quizzes */}
+        <h2 className="text-lg font-semibold">Existing quizzes</h2>
 
-            {expandedMonths.includes(month) && (
-              <div className="mt-3 grid gap-4">
-                {cachedPlans[language]?.[month]?.length === 0 ? (
-                  <p className="text-sm text-gray-500 ml-2">No lesson plans available.</p>
-                ) : (
-                  Object.entries(groupByWeek(cachedPlans[language][month])).map(([week, lessons], i) => (
-                    <div key={i} className="bg-white p-4 rounded shadow">
-                      <h3 className="font-semibold text-md mb-2">Week {week}</h3>
-                      {lessons.map((lesson, idx) => (
-                        <div key={idx} className="mb-2">
-                          <p className="font-medium">{lesson.category}</p>
-                          <p className="text-sm text-gray-700">{lesson.content}</p>
-                        </div>
-                      ))}
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
+        {loading && (
+          <div className="flex items-center gap-2 text-gray-500">
+            <Loader2 className="animate-spin" /> Loading…
           </div>
-        ))}
+        )}
+
+        {error && <p className="text-red-500">{error}</p>}
+
+        {!loading && quizzes.length === 0 && (
+          <p className="text-gray-500">No quizzes yet – press “Create quiz” to add one.</p>
+        )}
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {quizzes.map(q => (
+            <div key={q.id} className="bg-white p-4 rounded shadow">
+              <h3 className="font-semibold text-lg mb-1">{q.title}</h3>
+              <p className="text-sm text-gray-500 mb-3">{q.description}</p>
+              <button
+                onClick={() => nav(`/teacher/quizzes/${q.id}/edit`)}
+                className="text-sm text-[#0072e5] hover:underline"
+              >
+                Edit / continue
+              </button>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
 }
-
-export default Lessons;
