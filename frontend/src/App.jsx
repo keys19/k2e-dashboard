@@ -185,7 +185,7 @@ function App() {
       />
 
       <Route
-        path="/teacher/quizzes/:id/results"
+        path="/teacher/quizzes/results"
         element={
           <ProtectedRoute allowedRole="teacher">
             <QuizResults />
