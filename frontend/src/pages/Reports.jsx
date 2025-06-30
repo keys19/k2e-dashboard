@@ -58,6 +58,7 @@ function Reports() {
       const res = await axios.post(`${BASE_URL}/ai-reports/generate-report`, {
         student_id: selectedStudentId,
         month,
+        clerk_user_id: user.id 
       });
       setReport(res.data.report);
     } catch (err) {
