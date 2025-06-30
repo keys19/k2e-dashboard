@@ -43,7 +43,7 @@ router.post('/comment', async (req, res) => {
 // Improved generate-report route
 router.post('/generate-report', async (req, res) => {
   try {
-    const { student_id, month, generated_by = 'ai@system' } = req.body;
+    const { student_id, month, generated_by = 'ai@system',clerk_user_id  } = req.body;
 
     if (!student_id || !month) {
       return res.status(400).json({ error: 'Missing required fields: student_id and month' });
@@ -60,6 +60,19 @@ router.post('/generate-report', async (req, res) => {
       console.error("Student fetch error:", studentError);
       return res.status(404).json({ error: 'Student not found' });
     }
+
+    const { data: teacherData, error: teacherError } = await supabase
+  .from('teachers')
+  .select('name')
+  .eq('clerk_user_id', clerk_user_id)
+  .single();
+
+  if (teacherError || !teacherData) {
+    console.error("Teacher fetch error:", teacherError);
+    return res.status(404).json({ error: 'Teacher not found' });
+  }
+
+  const teacherName = teacherData.name;
 
     // Fetch assessment scores
     const { data: scores, error: scoresError } = await supabase
@@ -118,7 +131,7 @@ router.post('/generate-report', async (req, res) => {
 Subjects covered this month include the following dynamic categories based on assessments and lesson plans:
 ${[...new Set([...scores.map(s => s.category), ...plans.map(p => p.category)])].join(', ')}.
 
-
+Make sure you include the following sections exactly and do not skip any, for assessment scores, use numbers of score directly not the percenatge they rose by:
 Assessment Scores:
 ${scoreLines}
 
@@ -128,28 +141,34 @@ ${planSummary}
 Teacher Comments:
 ${teacherComment}
 
-Write in simple, clear, teacher-style language. Keep it specific to the subjects above.- Frame all feedback positively — do NOT use words like "struggled", "weak", or "failed".
+Write in super SIMPLE, CLEAR, teacher-style language. Keep it specific to the subjects above.- Frame all feedback positively — do NOT use words like "struggled", "weak", or "failed" and dont use difficult or extra fancy vocubulary.
 - Emphasize effort, improvement, and areas to keep working on using encouraging phrasing only.
-- End the report with a warm summary and sign off as the teacher.`
+- Dont need to bold any text, just use simple, clear language.
+- Use assessment scores and lesson plans to highlight specific achievements.
+- End the report with: "Regards, ${teacherName}"`
+
 ;
+
+console.log("API KEY:", apiKey);
+console.log("REFERER:", process.env.OPENROUTER_REFERER);
 
 
     // Send to OpenRouter
     const completion = await axios.post(
       'https://openrouter.ai/api/v1/chat/completions',
       {
-        model: 'openai/gpt-3.5-turbo',
+        model: 'mistralai/mistral-7b-instruct',
         messages: [
           {
   role: 'system',
-  content: `You are an assistant that writes simple, encouraging student progress reports for teachers based on dynamic subjects such as letters, numbers, emotions, shapes, or any other learning area. Always be positive, specific, and focus on effort and improvement.`
+  content: `You are an assistant that writes simple, encouraging student progress reports for teachers based on dynamic subjects such as letters, numbers, emotions, shapes, or any other learning area. Always be positive, specific, and focus on effort and improvement in plain text only. Never use Markdown`
 },{ role: 'user', content: prompt }
         ]
       },
       {
         headers: {
           Authorization: `Bearer ${apiKey}`,
-          'HTTP-Referer': 'https://your-domain.com', // Replace with your actual domain
+          'HTTP-Referer': process.env.OPENROUTER_REFERER, // Replace with your actual domain
           'X-Title': 'Student Report Generator',
           'Content-Type': 'application/json'
         }
