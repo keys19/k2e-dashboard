@@ -1,19 +1,10 @@
-/* ───────────────────────────────────────────────
-   QuizBuilderCore.jsx – Multiple correct answers
-──────────────────────────────────────────────── */
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  UploadCloud,
-  Trash2,
-  Plus,
-  Save,
-} from "lucide-react";
+import { UploadCloud, Trash2, Plus, Save } from "lucide-react";
 import axios from "axios";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-/* coloured shape glyphs */
 const icons = [
   <span className="text-xl leading-none">▲</span>,
   <span className="text-xl leading-none">◆</span>,
@@ -23,7 +14,6 @@ const icons = [
 
 export default function QuizBuilderCore({ mode = "new", quizId = null }) {
   const navigate = useNavigate();
-
   const [title, setTitle] = useState("Enter Quiz title…");
   const [questions, setQuestions] = useState([
     { id: 1, text: "", answers: ["", ""], correct: [], image: null },
@@ -31,21 +21,24 @@ export default function QuizBuilderCore({ mode = "new", quizId = null }) {
   const [active, setActive] = useState(1);
   const [loading, setLoading] = useState(mode === "edit");
 
+  const q = questions.find((x) => x.id === active);
+  const mutate = (fn) =>
+    setQuestions((prev) => prev.map((o) => (o.id === active ? fn(o) : o)));
+
   useEffect(() => {
     if (mode !== "edit" || !quizId) return;
     (async () => {
       try {
-        const { data } = await axios.get(`${BASE_URL}/quizzes/${quizId}`);
-        setTitle(data.title || "");
-        setQuestions(
-          data.slides?.length
-            ? data.slides.map((q, idx) => ({
-                id: idx + 1,
-                correct: q.correct || [],
-                ...q,
-              }))
-            : [{ id: 1, text: "", answers: ["", ""], correct: [], image: null }]
-        );
+        const { data: quiz } = await axios.get(`${BASE_URL}/quizzes/${quizId}`);
+        setTitle(quiz.title || "");
+        const loaded = quiz.slides.map((s, idx) => ({
+          id: idx + 1,
+          text: s.text,
+          image: s.image || null,
+          answers: s.answers,
+          correct: s.correct,
+        }));
+        setQuestions(loaded.length ? loaded : [{ id: 1, text: "", answers: ["", ""], correct: [], image: null }]);
       } catch (err) {
         alert("❌ Could not load quiz.");
         navigate("/teacher/quizzes");
@@ -54,11 +47,6 @@ export default function QuizBuilderCore({ mode = "new", quizId = null }) {
       }
     })();
   }, [mode, quizId]);
-
-  const q = questions.find((x) => x.id === active);
-
-  const mutate = (fn) =>
-    setQuestions((prev) => prev.map((o) => (o.id === active ? fn(o) : o)));
 
   const addQuestion = () =>
     setQuestions((prev) => [
@@ -75,20 +63,40 @@ export default function QuizBuilderCore({ mode = "new", quizId = null }) {
   };
 
   const handleSave = async () => {
-    const payload = { title, description: "A custom quiz", slides: questions };
     try {
-      if (mode === "edit" && quizId) {
-        await axios.put(`${BASE_URL}/quizzes/${quizId}`, payload);
-      } else {
-        await axios.post(`${BASE_URL}/quizzes`, payload);
+      const slides = questions.map((q) => ({
+        text: q.text,
+        answers: q.answers,
+        correct: q.correct,
+        image: q.image,
+      }));
+
+      if (!title.trim() || slides.length === 0) {
+        alert("❌ Please provide a title and at least one question.");
+        return;
       }
+
+      if (mode === "edit" && quizId) {
+        await axios.put(`${BASE_URL}/quizzes/${quizId}`, {
+          quiz_name: title,
+          slides,
+        });
+      } else {
+        await axios.post(`${BASE_URL}/quizzes`, {
+          title,
+          description: "A custom quiz",
+          slides,
+        });
+      }
+
       navigate("/teacher/quizzes");
     } catch (err) {
+      console.error(err);
       alert("❌ Failed to save quiz.");
     }
   };
 
-  if (loading)
+  if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
         <svg className="animate-spin h-8 w-8 text-gray-500" viewBox="0 0 24 24">
@@ -97,6 +105,7 @@ export default function QuizBuilderCore({ mode = "new", quizId = null }) {
         </svg>
       </div>
     );
+  }
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-[#f9fbff]">
@@ -138,7 +147,6 @@ export default function QuizBuilderCore({ mode = "new", quizId = null }) {
               )}
             </div>
           ))}
-
           <button
             onClick={addQuestion}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm py-2 rounded"
@@ -181,7 +189,6 @@ export default function QuizBuilderCore({ mode = "new", quizId = null }) {
                 >
                   {icons[i % 4]}
                 </div>
-
                 <input
                   value={ans}
                   onChange={(e) =>
@@ -193,7 +200,6 @@ export default function QuizBuilderCore({ mode = "new", quizId = null }) {
                   placeholder={`Answer ${i + 1}${i > 1 ? " (optional)" : ""}`}
                   className="flex-1 px-3 py-2 text-sm"
                 />
-
                 <label className="border-l flex items-center px-3 bg-gray-50 cursor-pointer">
                   <input
                     type="checkbox"
@@ -209,12 +215,13 @@ export default function QuizBuilderCore({ mode = "new", quizId = null }) {
                     }
                   />
                 </label>
-
                 <button
                   onClick={() =>
                     mutate((o) => {
                       const newAnswers = o.answers.filter((_, idx) => idx !== i);
-                      const newCorrect = o.correct.filter((idx) => idx !== i).map((idx) => (idx > i ? idx - 1 : idx));
+                      const newCorrect = o.correct
+                        .filter((idx) => idx !== i)
+                        .map((idx) => (idx > i ? idx - 1 : idx));
                       return { ...o, answers: newAnswers, correct: newCorrect };
                     })
                   }

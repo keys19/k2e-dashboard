@@ -1,21 +1,21 @@
 /* ────────────────────────────────────────────────
    Quizzes.jsx – list, create, edit, take & delete
 ───────────────────────────────────────────────── */
-import { useState, useEffect }   from "react";
-import { useNavigate }           from "react-router-dom";
-import axios                     from "axios";
-import Sidebar                   from "@/components/Sidebar";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import Sidebar from "@/components/Sidebar";
 import { PlusCircle, Loader2, Trash2 } from "lucide-react";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 export default function Quizzes() {
-  const navigate          = useNavigate();
-  const [quizzes, setQs]  = useState([]);
-  const [loading, setL]   = useState(true);
-  const [error, setErr]   = useState(null);
+  const navigate = useNavigate();
+  const [quizzes, setQs] = useState([]);
+  const [loading, setL] = useState(true);
+  const [error, setErr] = useState(null);
 
-  /* ─ fetch once ─ */
+  // ─ fetch once ─
   useEffect(() => {
     axios
       .get(`${BASE_URL}/quizzes`)
@@ -24,19 +24,19 @@ export default function Quizzes() {
       .finally(() => setL(false));
   }, []);
 
-  /* ─ delete handler ─ */
-  const handleDelete = async (id) => {
+  // ─ delete handler ─
+  const handleDelete = async (quiz_id) => {
     if (!window.confirm("Are you sure you want to delete this quiz?")) return;
     try {
-      await axios.delete(`${BASE_URL}/quizzes/${id}`);
-      setQs(prev => prev.filter(q => q.id !== id));
+      await axios.delete(`${BASE_URL}/quizzes/${quiz_id}`);
+      setQs(prev => prev.filter(q => q.quiz_id !== quiz_id));
     } catch (e) {
       alert("❌ Could not delete quiz.");
       console.error(e);
     }
   };
 
-  /* helper to wrap loading / error */
+  // ─ helper to wrap loading / error ─
   const wrapper = (inner) => (
     <div className="flex h-screen">
       <Sidebar />
@@ -45,9 +45,9 @@ export default function Quizzes() {
   );
 
   if (loading) return wrapper(<Loader2 size={32} className="animate-spin" />);
-  if (error)   return wrapper(<p className="text-red-500">{error}</p>);
+  if (error) return wrapper(<p className="text-red-500">{error}</p>);
 
-  /* ─ normal list view ─ */
+  // ─ normal list view ─
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar />
@@ -69,23 +69,23 @@ export default function Quizzes() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {quizzes.map(q => (
             <div
-              key={q.id}
+              key={q.quiz_id}
               className="relative bg-white p-4 rounded shadow flex flex-col gap-2"
             >
-              <h2 className="text-lg font-semibold">{q.title}</h2>
+              <h2 className="text-lg font-semibold">{q.quiz_name}</h2>
               <p className="text-sm text-gray-500">A custom quiz</p>
 
               {/* action buttons */}
               <div className="flex gap-4">
                 <button
-                  onClick={() => navigate(`/teacher/quizzes/${q.id}/edit`)}
+                  onClick={() => navigate(`/teacher/quizzes/${q.quiz_id}/edit`)}
                   className="text-sm text-blue-600 hover:underline"
                 >
                   Edit / Continue
                 </button>
 
                 <button
-                  onClick={() => navigate(`/teacher/quizzes/${q.id}/take`)}
+                  onClick={() => navigate(`/teacher/quizzes/${q.quiz_id}/take`)}
                   className="text-sm text-purple-600 hover:underline"
                 >
                   Take Quiz
@@ -94,7 +94,7 @@ export default function Quizzes() {
 
               {/* delete */}
               <button
-                onClick={() => handleDelete(q.id)}
+                onClick={() => handleDelete(q.quiz_id)}
                 className="absolute bottom-3 right-3 text-gray-400 hover:text-red-600"
                 title="Delete quiz"
               >
