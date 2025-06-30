@@ -651,12 +651,12 @@ const studentAttendanceChart = useMemo(
           </div>
 
           {/* Arabic Assessment */}
-          <div className="bg-white p-4 rounded shadow" style={{ width: '340px', height: '260px' }}>
+          <div className="bg-white p-4 rounded shadow" style={{ width: '340px', height: '360px' }}>
             <h2 className="text-lg font-semibold mb-2">Arabic Assessments</h2>
             {monthlyAssessment.length === 0 ? (
               <p className="text-sm text-gray-400">No data</p>
             ) : (
-              <ResponsiveContainer width="100%" height={160}>
+              <ResponsiveContainer width="100%" height={290}>
                 <BarChart data={monthlyAssessment}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="category" />

@@ -128,29 +128,29 @@ router.post('/generate-report', async (req, res) => {
     // Build AI prompt
     const prompt = `Generate a monthly student progress report for ${studentData.name} for ${month}.
 
-Subjects covered this month include the following dynamic categories based on assessments and lesson plans:
-${[...new Set([...scores.map(s => s.category), ...plans.map(p => p.category)])].join(', ')}.
+    Subjects covered this month include the following dynamic categories based on assessments and lesson plans:
+    ${[...new Set([...scores.map(s => s.category), ...plans.map(p => p.category)])].join(', ')}.
 
-Make sure you include the following sections exactly and do not skip any, for assessment scores, use numbers of score directly not the percenatge they rose by:
-Assessment Scores:
-${scoreLines}
+    Make sure you include the following sections exactly and do not skip any, for assessment scores, use numbers of score directly not the percenatge they rose by:
+    Assessment Scores:
+    ${scoreLines}
 
-Monthly Lesson Plans:
-${planSummary}
+    Monthly Lesson Plans:
+    ${planSummary}
 
-Teacher Comments:
-${teacherComment}
+    Teacher Comments:
+    ${teacherComment}
 
-Write in super SIMPLE, CLEAR, teacher-style language. Keep it specific to the subjects above.- Frame all feedback positively — do NOT use words like "struggled", "weak", or "failed" and dont use difficult or extra fancy vocubulary.
-- Emphasize effort, improvement, and areas to keep working on using encouraging phrasing only.
-- Dont need to bold any text, just use simple, clear language.
-- Use assessment scores and lesson plans to highlight specific achievements.
-- End the report with: "Regards, ${teacherName}"`
+    Write in super SIMPLE, CLEAR, teacher-style language. Keep it specific to the subjects above.- Frame all feedback positively — do NOT use words like "struggled", "weak", or "failed" and dont use difficult or extra fancy vocubulary.
+    - Emphasize effort, improvement, and areas to keep working on using encouraging phrasing only.
+    - Dont need to bold any text, just use simple, clear language.
+    - Use assessment scores and lesson plans to highlight specific achievements.
+    - End the report with: "Regards, ${teacherName}"`
 
-;
+    ;
 
-console.log("API KEY:", apiKey);
-console.log("REFERER:", process.env.OPENROUTER_REFERER);
+    console.log("API KEY:", apiKey);
+    console.log("REFERER:", process.env.OPENROUTER_REFERER);
 
 
     // Send to OpenRouter
@@ -160,9 +160,9 @@ console.log("REFERER:", process.env.OPENROUTER_REFERER);
         model: 'mistralai/mistral-7b-instruct',
         messages: [
           {
-  role: 'system',
-  content: `You are an assistant that writes simple, encouraging student progress reports for teachers based on dynamic subjects such as letters, numbers, emotions, shapes, or any other learning area. Always be positive, specific, and focus on effort and improvement in plain text only. Never use Markdown`
-},{ role: 'user', content: prompt }
+        role: 'system',
+        content: `You are an assistant that writes simple, encouraging student progress reports for teachers based on dynamic subjects such as letters, numbers, emotions, shapes, or any other learning area. Always be positive, specific, and focus on effort and improvement in plain text only. Never use Markdown`
+      },{ role: 'user', content: prompt }
         ]
       },
       {
