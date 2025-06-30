@@ -20,48 +20,16 @@ function getCurrentMonthLabel() {
   return `${now.toLocaleString('default', { month: 'long' })} ${now.getFullYear()}`;
 }
 
-// // ✅ Mood Summary from External DB
-// router.get('/mood-summary', async (req, res) => {
-//   const monthLabel = req.query.month || getCurrentMonthLabel();
-//   console.log("🌈 mood-summary called:", { month: monthLabel });
 
-//   try {
-//     const [monthName, year] = monthLabel.split(" ");
-//     const monthIndex = new Date(`${monthName} 1, ${year}`).getMonth() + 1;
-//     const formattedMonth = `${year}-${monthIndex.toString().padStart(2, '0')}`;
-
-//     const { data, error } = await moodSupabase
-//       .from('mood_entries')
-//       .select('mood, timestamp');
-
-//     if (error) {
-//       console.error("❌ Supabase mood fetch error:", error);
-//       return res.status(500).json({ error: error.message });
-//     }
-
-//     const filtered = data.filter(entry => entry.timestamp.startsWith(formattedMonth));
-
-//     const moodCounts = {};
-//     for (const entry of filtered) {
-//       moodCounts[entry.mood] = (moodCounts[entry.mood] || 0) + 1;
-//     }
-
-//     res.json(moodCounts);
-//   } catch (err) {
-//     console.error("🔥 Unexpected mood summary error:", err);
-//     res.status(500).json({ error: 'Unexpected server error' });
-//   }
-// });
-
-// ✅ Mood Summary with day/week/month filters
 router.get('/mood-summary', async (req, res) => {
   const type = req.query.type || 'month';
   const now = new Date();
+  const groupName = req.query.group_name; // get group_name from query
 
   try {
     const { data, error } = await moodSupabase
       .from('mood_entries')
-      .select('mood, timestamp');
+      .select('mood, timestamp, group');
 
     if (error) {
       console.error("❌ Supabase error:", error);
@@ -90,6 +58,11 @@ router.get('/mood-summary', async (req, res) => {
       const formattedMonth = `${year}-${monthIndex.toString().padStart(2, '0')}`;
 
       filtered = data.filter(entry => entry.timestamp.startsWith(formattedMonth));
+    }
+
+    // ✅ Filter by group name if provided
+    if (groupName) {
+      filtered = filtered.filter(entry => entry.group === groupName);
     }
 
     const moodCounts = {};
@@ -132,34 +105,7 @@ router.get('/attendance/weekly', async (req, res) => {
   res.json(result);
 });
 
-// ✅ Monthly Assessments by Category
-// router.get('/assessments/monthly-categories', async (req, res) => {
-//   const { group_id, month } = req.query;
-//   if (!group_id || !month) return res.status(400).json({ error: 'Missing group_id or month' });
 
-//   const { data, error } = await supabase
-//     .from('assessment_scores')
-//     .select('category, raw_score, max_score, students!inner(id, group_id)')
-//     .eq('month', month)
-//     .eq('students.group_id', group_id);
-
-//   if (error) return res.status(500).json({ error: error.message });
-
-//   const categoryStats = {};
-//   data.forEach(score => {
-//     const cat = score.category;
-//     if (!categoryStats[cat]) categoryStats[cat] = { total: 0, max: 0 };
-//     categoryStats[cat].total += score.raw_score;
-//     categoryStats[cat].max += score.max_score;
-//   });
-
-//   const result = Object.entries(categoryStats).map(([category, { total, max }]) => ({
-//     category,
-//     percentage: max ? Math.round((total / max) * 100) : 0
-//   }));
-
-//   res.json(result);
-// });
 router.get('/assessments/monthly-categories', async (req, res) => {
   const { group_id, month } = req.query;
   if (!group_id || !month) return res.status(400).json({ error: 'Missing group_id or month' });
@@ -194,6 +140,60 @@ router.get('/assessments/monthly-categories', async (req, res) => {
   res.json(result);
 });
 
+router.get('/attendance/daily', async (req, res) => {
+  const { group_id, date } = req.query;
+  if (!group_id || !date) return res.status(400).json({ error: 'Missing group_id or date' });
 
+  const { data, error } = await supabase
+    .from('attendance_entries')
+    .select('status')
+    .eq('group_id', group_id)
+    .eq('date', date);
+
+  if (error) return res.status(500).json({ error: error.message });
+
+  const present = data.filter(entry => entry.status === 'P').length;
+  const absent = data.filter(entry => entry.status === 'A').length;
+  const holiday = data.filter(entry => entry.status === 'H').length;
+
+  res.json({ present, absent, holiday });
+});
+
+// GET /stats/attendance/student-percentages?group_id=...&month=...
+
+router.get('/attendance/student-percentages', async (req, res) => {
+  const { group_id, month } = req.query;
+
+  const { data, error } = await supabase
+    .from('attendance_entries')
+    .select('student_id, status')
+    .eq('group_id', group_id)
+    .eq('month', month);
+
+  if (error) return res.status(500).json({ error: error.message });
+
+  const studentStats = {};
+  data.forEach(entry => {
+    const id = entry.student_id;
+    if (!studentStats[id]) studentStats[id] = { P: 0, A: 0 };
+    if (entry.status === 'P') studentStats[id].P += 1;
+    if (entry.status === 'A') studentStats[id].A += 1;
+  });
+
+  // ✅ FILTER STUDENTS BY GROUP
+  const { data: students } = await supabase
+    .from('students')
+    .select('id, name')
+    .eq('group_id', group_id);
+
+  const result = students.map(s => {
+    const stats = studentStats[s.id] || { P: 0, A: 0 };
+    const total = stats.P + stats.A;
+    const percent = total > 0 ? Math.round((stats.P / total) * 100) : 0;
+    return { name: s.name, percent };
+  });
+
+  res.json(result);
+});
 
 export default router;

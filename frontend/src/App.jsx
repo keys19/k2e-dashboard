@@ -28,7 +28,7 @@ function App() {
   return (
     <Routes>
       {/* Sign-in route */}
-      <Route
+      {/* <Route
         path="/dashboard"
         element={
           <div className="min-h-screen flex items-center justify-center bg-[#F3F9FD]">
@@ -36,6 +36,7 @@ function App() {
               <SignIn
                 routing="path"
                 path="/dashboard"
+                redirectUrl="/dashboard"
                 appearance={{
                   variables: {
                     colorPrimary: "#2E87D4",
@@ -54,7 +55,7 @@ function App() {
             </SignedIn>
           </div>
         }
-      />
+      /> */}
 
       {/* ✅ Protected student routes */}
       <Route
@@ -143,6 +144,35 @@ function App() {
 
       {/* Landing or fallback */}
       <Route path="/" element={<LandingPage />} />
+      <Route
+  path="/dashboard/*"
+  element={
+    <div className="min-h-screen flex items-center justify-center bg-[#F3F9FD]">
+      <SignedOut>
+        <SignIn
+          routing="path"
+          path="/dashboard"
+          redirectUrl="/dashboard"
+          appearance={{
+            variables: {
+              colorPrimary: "#2E87D4",
+              colorText: "#1F2937",
+              colorBackground: "#FFFFFF",
+            },
+            elements: {
+              formButtonPrimary: "bg-[#2E87D4] hover:bg-[#1c6cb7]",
+            },
+          }}
+        />
+      </SignedOut>
+      <SignedIn>
+        <RoleRedirect />
+      </SignedIn>
+    </div>
+  }
+/>
+
+
     </Routes>
   );
 }
