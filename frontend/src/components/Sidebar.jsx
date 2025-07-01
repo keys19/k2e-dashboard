@@ -24,6 +24,7 @@ const Sidebar = () => {
     { to: "/teacher/reports", icon: <LineChart size={18} />, label: "Reports" },
     { to: "/teacher/students", icon: <Users size={18} />, label: "Student Groups" },
      { to: "/teacher/auto-grade", icon: <ScanLine size={18} />, label: "Auto Grader" },
+     { to: "/teacher/quizzes",     icon: <Layers   size={18} />, label: "Quizzes" },
   ];
 
   return (
