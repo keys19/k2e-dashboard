@@ -257,6 +257,425 @@
 // export default TeacherDashboard;
 
 
+// import { useState, useEffect, useMemo } from 'react';
+// import axios from 'axios';
+// import Sidebar from '../components/Sidebar';
+// import { useUser } from '@clerk/clerk-react';
+// import {
+//   BarChart,
+//   Bar,
+//   XAxis,
+//   YAxis,
+//   CartesianGrid,
+//   Tooltip as BarTooltip,
+//   ResponsiveContainer,
+//   PieChart,
+//   Pie,
+//   Cell,
+//   Legend,
+// } from 'recharts';
+// import {
+//   Select,
+//   SelectContent,
+//   SelectItem,
+//   SelectTrigger,
+//   SelectValue,
+// } from '@/components/ui/select';
+// import LoadingScreen from '@/components/LoadingScreen';
+
+// const COLORS = ['#00C49F', '#FFBB28', '#FF8042', '#0088FE', '#a855f7', '#ef4444'];
+// const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+// function TeacherDashboard() {
+//   const { user } = useUser();
+//   const [groups, setGroups] = useState([]);
+//   const [selectedGroup, setSelectedGroup] = useState(null);
+//   const [weeklyAttendance, setWeeklyAttendance] = useState([]);
+//   const [studentAttendance, setStudentAttendance] = useState([]);
+//   const [monthlyAssessment, setMonthlyAssessment] = useState([]);
+//   const [moodSummary, setMoodSummary] = useState({});
+//   const [moodType, setMoodType] = useState('month');
+//   const [attendanceType, setAttendanceType] = useState('week');
+//   const [loading, setLoading] = useState(true);
+//   const [error, setError] = useState(null);
+
+//   useEffect(() => {
+//     const insertTeacherIfNeeded = async () => {
+//       if (!user?.id) return;
+
+//       try {
+//         const checkRes = await axios.get(`${BASE_URL}/teachers/by-clerk-id`, {
+//           params: { clerk_user_id: user.id },
+//         });
+
+//         if (!checkRes.data) {
+//           await axios.post(`${BASE_URL}/teachers`, {
+//             name: user.fullName,
+//             email: user.primaryEmailAddress?.emailAddress || '',
+//             clerk_user_id: user.id,
+//           });
+//         }
+//       } catch (err) {
+//         console.error('🔴 Failed to sync teacher:', err);
+//       }
+//     };
+
+//     insertTeacherIfNeeded();
+//   }, [user]);
+
+//   const getCurrentMonthString = () => {
+//     const now = new Date();
+//     const monthName = now.toLocaleString('default', { month: 'long' });
+//     return `${monthName} ${now.getFullYear()}`;
+//   };
+
+//   const getCurrentWeekMonday = () => {
+//     const now = new Date();
+//     const day = now.getDay();
+//     const monday = new Date(now);
+//     monday.setDate(now.getDate() - ((day + 6) % 7));
+//     return monday.toISOString().split('T')[0];
+//   };
+
+//   const getTodayDate = () => {
+//     const today = new Date();
+//     return today.toISOString().split('T')[0];
+//   };
+
+//   useEffect(() => {
+//     if (!user?.id) return;
+
+//     axios
+//       .get(`${BASE_URL}/groups/for-teacher?clerk_user_id=${user.id}`)
+//       .then((res) => {
+//         setGroups(res.data);
+//         const stored = localStorage.getItem('selectedGroupId');
+//         setSelectedGroup(stored || res.data[0]?.id);
+//       })
+//       .catch(() => setError('Failed to load groups'));
+//   }, [user]);
+
+//   // Fetch assessments + mood
+//   useEffect(() => {
+//     if (!selectedGroup) return;
+
+//     const fetchAllData = async () => {
+//       setLoading(true);
+//       try {
+//       const selectedGroupName = groups.find(g => g.id === selectedGroup)?.name; // 🟢 Lookup
+
+//       const [assessmentRes, moodRes] = await Promise.all([
+//         axios.get(
+//           `${BASE_URL}/stats/assessments/monthly-categories?group_id=${selectedGroup}&month=${getCurrentMonthString()}`
+//         ),
+//         axios.get(
+//           `${BASE_URL}/stats/mood-summary?type=${moodType}&month=${getCurrentMonthString()}&group_name=${encodeURIComponent(selectedGroupName)}`
+//         ),
+//       ]);
+
+//       setMonthlyAssessment(assessmentRes.data);
+//       setMoodSummary(moodRes.data);
+//       setError(null);
+//     } catch (err) {
+//       setError('Failed to load dashboard data');
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   fetchAllData();
+// }, [selectedGroup, moodType, groups]);
+
+//   // Fetch attendance
+//   useEffect(() => {
+//     if (!selectedGroup) return;
+
+//     const fetchAttendance = async () => {
+//       try {
+//         let res;
+//         if (attendanceType === 'week') {
+//           res = await axios.get(`${BASE_URL}/stats/attendance/weekly`, {
+//             params: {
+//               group_id: selectedGroup,
+//               week_start: getCurrentWeekMonday(),
+//             },
+//           });
+//           const attendance = Array.isArray(res.data)
+//             ? res.data
+//             : Object.entries(res.data).map(([day, present]) => ({ day, present }));
+//           setWeeklyAttendance(attendance);
+//         } else if (attendanceType === 'month') {
+//           const monthStr = getCurrentMonthString();
+//           res = await axios.get(`${BASE_URL}/stats/attendance/monthly`, {
+//             params: { group_id: selectedGroup, month: monthStr.split(' ')[0] },
+//           });
+
+//           const { present, absent, holiday } = res.data;
+//           const result = [
+//             { day: 'Present', present },
+//             { day: 'Absent', present: absent },
+//             { day: 'Holiday', present: holiday },
+//           ];
+//           setWeeklyAttendance(result);
+//         } else if (attendanceType === 'day') {
+//           res = await axios.get(`${BASE_URL}/stats/attendance/daily`, {
+//             params: { group_id: selectedGroup, date: getTodayDate() },
+//           });
+
+//           const { present, absent, holiday } = res.data;
+//           const result = [
+//             { day: 'Present', present },
+//             { day: 'Absent', present: absent },
+//             { day: 'Holiday', present: holiday },
+//           ];
+//           setWeeklyAttendance(result);
+//         }
+//       } catch (err) {
+//         console.error('Error fetching attendance:', err);
+//       }
+//     };
+
+//     fetchAttendance();
+//   }, [selectedGroup, attendanceType]);
+
+//   // Fetch student-level attendance %
+//   useEffect(() => {
+//     if (!selectedGroup) return;
+
+//     const fetchStudentAttendance = async () => {
+//       const monthStr = getCurrentMonthString();
+//       try {
+//         const res = await axios.get(
+//           `${BASE_URL}/stats/attendance/student-percentages`,
+//           {
+//             params: { group_id: selectedGroup, month: monthStr },
+//           }
+//         );
+//         setStudentAttendance(res.data);
+//       } catch (err) {
+//         console.error('Error fetching student attendance %:', err);
+//       }
+//     };
+
+//     fetchStudentAttendance();
+//   }, [selectedGroup]);
+
+//   const moodTranslation = {
+//     Excellent: 'Excellent',
+//     Good: 'Happy',
+//     Average: 'Tired',
+//     Poor: 'Sad',
+//   };
+
+//   const moodPieData = useMemo(
+//     () =>
+//       Object.entries(moodSummary).map(([label, count]) => ({
+//         name: moodTranslation[label] || label,
+//         value: count,
+//       })),
+//     [moodSummary]
+//   );
+
+//   const attendanceChart = useMemo(
+//     () =>
+//       weeklyAttendance.length === 0 ? (
+//         <p className="text-sm text-gray-400">No data</p>
+//       ) : (
+//         <ResponsiveContainer width="100%" height={250}>
+//           <BarChart data={weeklyAttendance}>
+//             <CartesianGrid strokeDasharray="3 3" />
+//             <XAxis dataKey="day" />
+//             <YAxis tickCount={4} allowDecimals={false} />
+//             <BarTooltip />
+//             <Bar dataKey="present" fill="#4ade80" />
+//           </BarChart>
+//         </ResponsiveContainer>
+//       ),
+//     [weeklyAttendance]
+//   );
+
+//   const moodChart = useMemo(
+//     () =>
+//       moodPieData.length === 0 ? (
+//         <p className="text-sm text-gray-400">No data</p>
+//       ) : (
+//         <ResponsiveContainer width="100%" height={250}>
+//           <PieChart>
+//             <Pie
+//               data={moodPieData}
+//               dataKey="value"
+//               nameKey="name"
+//               innerRadius={60}
+//               outerRadius={80}
+//               label
+//             >
+//               {moodPieData.map((entry, i) => (
+//                 <Cell key={`cell-${i}`} fill={COLORS[i % COLORS.length]} />
+//               ))}
+//             </Pie>
+//             <Legend />
+//           </PieChart>
+//         </ResponsiveContainer>
+//       ),
+//     [moodPieData]
+//   );
+
+// const studentAttendanceChart = useMemo(
+//   () =>
+//     studentAttendance.length === 0 ? (
+//       <p className="text-sm text-gray-400">No data</p>
+//     ) : (
+//       <ResponsiveContainer width="100%" height={250}>
+//         <BarChart
+//           data={studentAttendance}
+//           margin={{ top: 20, right: 30, left: 30, bottom: 40 }}
+//         >
+//           <CartesianGrid strokeDasharray="3 3" />
+//           <XAxis
+//             dataKey="name"
+//             interval={0}
+//             angle={-30}
+//             textAnchor="end"
+//             tick={{ fontSize: 10 }}
+//           />
+//           <YAxis domain={[0, 100]} tickCount={6} />
+//           <BarTooltip />
+//           <Bar dataKey="percent" fill="#60a5fa" barSize={20} />
+//         </BarChart>
+//       </ResponsiveContainer>
+//     ),
+//   [studentAttendance]
+// );
+
+
+//   if (loading)
+//     return (
+//       <div className="flex justify-center items-center h-screen">
+//         <LoadingScreen />
+//       </div>
+//     );
+//   if (error)
+//     return (
+//       <div className="flex justify-center items-center h-screen text-red-500">
+//         {error}
+//       </div>
+//     );
+
+//   return (
+//     <div className="flex h-screen">
+//   <Sidebar />
+//   <div className="flex-1 overflow-y-auto p-8">
+//         <div className="flex justify-between items-center mb-6">
+//           <h1 className="text-2xl font-bold">Dashboard</h1>
+//           <Select
+//             value={selectedGroup || ''}
+//             onValueChange={(val) => {
+//               setSelectedGroup(val);
+//               localStorage.setItem('selectedGroupId', val);
+//             }}
+//           >
+//             <SelectTrigger className="w-[220px]">
+//               <SelectValue placeholder="Select group" />
+//             </SelectTrigger>
+//             <SelectContent>
+//               {groups.map((g) => (
+//                 <SelectItem key={g.id} value={g.id}>
+//                   {g.name}
+//                 </SelectItem>
+//               ))}
+//             </SelectContent>
+//           </Select>
+//         </div>
+
+//         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+//           {/* Mood Dashboard */}
+//           <div className="bg-white p-4 rounded shadow col-span-1">
+//             <div className="flex items-center justify-between mb-2">
+//               <h2 className="text-lg font-semibold">Mood Dashboard</h2>
+//               <Select value={moodType} onValueChange={setMoodType}>
+//                 <SelectTrigger className="w-28 text-sm border-gray-300">
+//                   <SelectValue placeholder="Select" />
+//                 </SelectTrigger>
+//                 <SelectContent>
+//                   <SelectItem value="today">Today</SelectItem>
+//                   <SelectItem value="week">This Week</SelectItem>
+//                   <SelectItem value="month">This Month</SelectItem>
+//                 </SelectContent>
+//               </Select>
+//             </div>
+//             {moodChart}
+//           </div>
+
+//           {/* Attendance Overview */}
+//           <div className="bg-white p-4 rounded shadow col-span-1">
+//             <div className="flex items-center justify-between mb-2">
+//               <h2 className="text-lg font-semibold">Attendance Overview</h2>
+//               <Select value={attendanceType} onValueChange={setAttendanceType}>
+//                 <SelectTrigger className="w-[120px] text-sm">
+//                   <SelectValue placeholder="Select" />
+//                 </SelectTrigger>
+//                 <SelectContent>
+//                   <SelectItem value="day">Today</SelectItem>
+//                   <SelectItem value="week">Weekly</SelectItem>
+//                   {/* <SelectItem value="month">Monthly</SelectItem> */}
+//                 </SelectContent>
+//               </Select>
+//             </div>
+//             {attendanceChart}
+//           </div>
+
+//           {/* Student Attendance % */}
+//           <div className="bg-white p-4 rounded shadow col-span-1 md:col-span-3 overflow-x-auto">
+//             <h2 className="text-lg font-semibold mb-2">Student Attendance % this month</h2>
+//             <div style={{ minWidth: `${studentAttendance.length * 80}px`, height: '250px' }}>
+//               {studentAttendanceChart}
+//             </div>
+//           </div>
+
+//           {/* English Assessment */}
+//           <div className="bg-white p-4 rounded shadow" style={{ width: '320px', height: '360px' }}>
+//             <h2 className="text-lg font-semibold mb-2">English Assessments</h2>
+//             {monthlyAssessment.length === 0 ? (
+//               <p className="text-sm text-gray-400">No data</p>
+//             ) : (
+//               <ResponsiveContainer width="100%" height={290}>
+//                 <BarChart data={monthlyAssessment}>
+//                   <CartesianGrid strokeDasharray="3 3" />
+//                   <XAxis dataKey="category" />
+//                   <YAxis />
+//                   <BarTooltip />
+//                   <Bar dataKey="English" fill="#60a5fa" />
+//                 </BarChart>
+//               </ResponsiveContainer>
+//             )}
+//           </div>
+
+//           {/* Arabic Assessment */}
+//           <div className="bg-white p-4 rounded shadow" style={{ width: '340px', height: '360px' }}>
+//             <h2 className="text-lg font-semibold mb-2">Arabic Assessments</h2>
+//             {monthlyAssessment.length === 0 ? (
+//               <p className="text-sm text-gray-400">No data</p>
+//             ) : (
+//               <ResponsiveContainer width="100%" height={290}>
+//                 <BarChart data={monthlyAssessment}>
+//                   <CartesianGrid strokeDasharray="3 3" />
+//                   <XAxis dataKey="category" />
+//                   <YAxis />
+//                   <BarTooltip />
+//                   <Bar dataKey="Arabic" fill="#f87171" />
+//                 </BarChart>
+//               </ResponsiveContainer>
+//             )}
+//           </div>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// }
+
+// export default TeacherDashboard;
+
+
 import { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import Sidebar from '../components/Sidebar';
@@ -290,6 +709,7 @@ function TeacherDashboard() {
   const { user } = useUser();
   const [groups, setGroups] = useState([]);
   const [selectedGroup, setSelectedGroup] = useState(null);
+  const [selectedMonth, setSelectedMonth] = useState(getCurrentMonthString());
   const [weeklyAttendance, setWeeklyAttendance] = useState([]);
   const [studentAttendance, setStudentAttendance] = useState([]);
   const [monthlyAssessment, setMonthlyAssessment] = useState([]);
@@ -299,35 +719,11 @@ function TeacherDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const insertTeacherIfNeeded = async () => {
-      if (!user?.id) return;
-
-      try {
-        const checkRes = await axios.get(`${BASE_URL}/teachers/by-clerk-id`, {
-          params: { clerk_user_id: user.id },
-        });
-
-        if (!checkRes.data) {
-          await axios.post(`${BASE_URL}/teachers`, {
-            name: user.fullName,
-            email: user.primaryEmailAddress?.emailAddress || '',
-            clerk_user_id: user.id,
-          });
-        }
-      } catch (err) {
-        console.error('🔴 Failed to sync teacher:', err);
-      }
-    };
-
-    insertTeacherIfNeeded();
-  }, [user]);
-
-  const getCurrentMonthString = () => {
+  function getCurrentMonthString() {
     const now = new Date();
     const monthName = now.toLocaleString('default', { month: 'long' });
     return `${monthName} ${now.getFullYear()}`;
-  };
+  }
 
   const getCurrentWeekMonday = () => {
     const now = new Date();
@@ -343,8 +739,28 @@ function TeacherDashboard() {
   };
 
   useEffect(() => {
-    if (!user?.id) return;
+    const insertTeacherIfNeeded = async () => {
+      if (!user?.id) return;
+      try {
+        const checkRes = await axios.get(`${BASE_URL}/teachers/by-clerk-id`, {
+          params: { clerk_user_id: user.id },
+        });
+        if (!checkRes.data) {
+          await axios.post(`${BASE_URL}/teachers`, {
+            name: user.fullName,
+            email: user.primaryEmailAddress?.emailAddress || '',
+            clerk_user_id: user.id,
+          });
+        }
+      } catch (err) {
+        console.error('🔴 Failed to sync teacher:', err);
+      }
+    };
+    insertTeacherIfNeeded();
+  }, [user]);
 
+  useEffect(() => {
+    if (!user?.id) return;
     axios
       .get(`${BASE_URL}/groups/for-teacher?clerk_user_id=${user.id}`)
       .then((res) => {
@@ -355,38 +771,36 @@ function TeacherDashboard() {
       .catch(() => setError('Failed to load groups'));
   }, [user]);
 
-  // Fetch assessments + mood
   useEffect(() => {
     if (!selectedGroup) return;
-
     const fetchAllData = async () => {
       setLoading(true);
       try {
-      const selectedGroupName = groups.find(g => g.id === selectedGroup)?.name; // 🟢 Lookup
+        const selectedGroupName = groups.find((g) => g.id === selectedGroup)?.name;
 
-      const [assessmentRes, moodRes] = await Promise.all([
-        axios.get(
-          `${BASE_URL}/stats/assessments/monthly-categories?group_id=${selectedGroup}&month=${getCurrentMonthString()}`
-        ),
-        axios.get(
-          `${BASE_URL}/stats/mood-summary?type=${moodType}&month=${getCurrentMonthString()}&group_name=${encodeURIComponent(selectedGroupName)}`
-        ),
-      ]);
+        const [assessmentRes, moodRes] = await Promise.all([
+          axios.get(
+            `${BASE_URL}/stats/assessments/monthly-categories?group_id=${selectedGroup}&month=${selectedMonth}`
+          ),
+          axios.get(
+            `${BASE_URL}/stats/mood-summary?type=${moodType}&month=${selectedMonth}&group_name=${encodeURIComponent(
+              selectedGroupName
+            )}`
+          ),
+        ]);
 
-      setMonthlyAssessment(assessmentRes.data);
-      setMoodSummary(moodRes.data);
-      setError(null);
-    } catch (err) {
-      setError('Failed to load dashboard data');
-    } finally {
-      setLoading(false);
-    }
-  };
+        setMonthlyAssessment(assessmentRes.data);
+        setMoodSummary(moodRes.data);
+        setError(null);
+      } catch (err) {
+        setError('Failed to load dashboard data');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAllData();
+  }, [selectedGroup, moodType, selectedMonth, groups]);
 
-  fetchAllData();
-}, [selectedGroup, moodType, groups]);
-
-  // Fetch attendance
   useEffect(() => {
     if (!selectedGroup) return;
 
@@ -405,11 +819,12 @@ function TeacherDashboard() {
             : Object.entries(res.data).map(([day, present]) => ({ day, present }));
           setWeeklyAttendance(attendance);
         } else if (attendanceType === 'month') {
-          const monthStr = getCurrentMonthString();
           res = await axios.get(`${BASE_URL}/stats/attendance/monthly`, {
-            params: { group_id: selectedGroup, month: monthStr.split(' ')[0] },
+            params: {
+              group_id: selectedGroup,
+              month: selectedMonth.split(' ')[0],
+            },
           });
-
           const { present, absent, holiday } = res.data;
           const result = [
             { day: 'Present', present },
@@ -421,7 +836,6 @@ function TeacherDashboard() {
           res = await axios.get(`${BASE_URL}/stats/attendance/daily`, {
             params: { group_id: selectedGroup, date: getTodayDate() },
           });
-
           const { present, absent, holiday } = res.data;
           const result = [
             { day: 'Present', present },
@@ -434,21 +848,17 @@ function TeacherDashboard() {
         console.error('Error fetching attendance:', err);
       }
     };
-
     fetchAttendance();
-  }, [selectedGroup, attendanceType]);
+  }, [selectedGroup, attendanceType, selectedMonth]);
 
-  // Fetch student-level attendance %
   useEffect(() => {
     if (!selectedGroup) return;
-
     const fetchStudentAttendance = async () => {
-      const monthStr = getCurrentMonthString();
       try {
         const res = await axios.get(
           `${BASE_URL}/stats/attendance/student-percentages`,
           {
-            params: { group_id: selectedGroup, month: monthStr },
+            params: { group_id: selectedGroup, month: selectedMonth },
           }
         );
         setStudentAttendance(res.data);
@@ -456,9 +866,8 @@ function TeacherDashboard() {
         console.error('Error fetching student attendance %:', err);
       }
     };
-
     fetchStudentAttendance();
-  }, [selectedGroup]);
+  }, [selectedGroup, selectedMonth]);
 
   const moodTranslation = {
     Excellent: 'Excellent',
@@ -520,33 +929,32 @@ function TeacherDashboard() {
     [moodPieData]
   );
 
-const studentAttendanceChart = useMemo(
-  () =>
-    studentAttendance.length === 0 ? (
-      <p className="text-sm text-gray-400">No data</p>
-    ) : (
-      <ResponsiveContainer width="100%" height={250}>
-        <BarChart
-          data={studentAttendance}
-          margin={{ top: 20, right: 30, left: 30, bottom: 40 }}
-        >
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis
-            dataKey="name"
-            interval={0}
-            angle={-30}
-            textAnchor="end"
-            tick={{ fontSize: 10 }}
-          />
-          <YAxis domain={[0, 100]} tickCount={6} />
-          <BarTooltip />
-          <Bar dataKey="percent" fill="#60a5fa" barSize={20} />
-        </BarChart>
-      </ResponsiveContainer>
-    ),
-  [studentAttendance]
-);
-
+  const studentAttendanceChart = useMemo(
+    () =>
+      studentAttendance.length === 0 ? (
+        <p className="text-sm text-gray-400">No data</p>
+      ) : (
+        <ResponsiveContainer width="100%" height={250}>
+          <BarChart
+            data={studentAttendance}
+            margin={{ top: 20, right: 30, left: 30, bottom: 40 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis
+              dataKey="name"
+              interval={0}
+              angle={-30}
+              textAnchor="end"
+              tick={{ fontSize: 10 }}
+            />
+            <YAxis domain={[0, 100]} tickCount={6} />
+            <BarTooltip />
+            <Bar dataKey="percent" fill="#60a5fa" barSize={20} />
+          </BarChart>
+        </ResponsiveContainer>
+      ),
+    [studentAttendance]
+  );
 
   if (loading)
     return (
@@ -563,32 +971,51 @@ const studentAttendanceChart = useMemo(
 
   return (
     <div className="flex h-screen">
-  <Sidebar />
-  <div className="flex-1 overflow-y-auto p-8">
+      <Sidebar />
+      <div className="flex-1 overflow-y-auto p-8">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Dashboard</h1>
-          <Select
-            value={selectedGroup || ''}
-            onValueChange={(val) => {
-              setSelectedGroup(val);
-              localStorage.setItem('selectedGroupId', val);
-            }}
-          >
-            <SelectTrigger className="w-[220px]">
-              <SelectValue placeholder="Select group" />
-            </SelectTrigger>
-            <SelectContent>
-              {groups.map((g) => (
-                <SelectItem key={g.id} value={g.id}>
-                  {g.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-4">
+            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Select month" />
+              </SelectTrigger>
+              <SelectContent>
+                {[
+                  'June', 'July'
+                ].map((month) => (
+                  <SelectItem
+                    key={month}
+                    value={`${month} ${new Date().getFullYear()}`}
+                  >
+                    {month} {new Date().getFullYear()}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={selectedGroup || ''}
+              onValueChange={(val) => {
+                setSelectedGroup(val);
+                localStorage.setItem('selectedGroupId', val);
+              }}
+            >
+              <SelectTrigger className="w-[220px]">
+                <SelectValue placeholder="Select group" />
+              </SelectTrigger>
+              <SelectContent>
+                {groups.map((g) => (
+                  <SelectItem key={g.id} value={g.id}>
+                    {g.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Mood Dashboard */}
           <div className="bg-white p-4 rounded shadow col-span-1">
             <div className="flex items-center justify-between mb-2">
               <h2 className="text-lg font-semibold">Mood Dashboard</h2>
@@ -606,7 +1033,6 @@ const studentAttendanceChart = useMemo(
             {moodChart}
           </div>
 
-          {/* Attendance Overview */}
           <div className="bg-white p-4 rounded shadow col-span-1">
             <div className="flex items-center justify-between mb-2">
               <h2 className="text-lg font-semibold">Attendance Overview</h2>
@@ -617,14 +1043,12 @@ const studentAttendanceChart = useMemo(
                 <SelectContent>
                   <SelectItem value="day">Today</SelectItem>
                   <SelectItem value="week">Weekly</SelectItem>
-                  {/* <SelectItem value="month">Monthly</SelectItem> */}
                 </SelectContent>
               </Select>
             </div>
             {attendanceChart}
           </div>
 
-          {/* Student Attendance % */}
           <div className="bg-white p-4 rounded shadow col-span-1 md:col-span-3 overflow-x-auto">
             <h2 className="text-lg font-semibold mb-2">Student Attendance % this month</h2>
             <div style={{ minWidth: `${studentAttendance.length * 80}px`, height: '250px' }}>
@@ -632,7 +1056,6 @@ const studentAttendanceChart = useMemo(
             </div>
           </div>
 
-          {/* English Assessment */}
           <div className="bg-white p-4 rounded shadow" style={{ width: '320px', height: '360px' }}>
             <h2 className="text-lg font-semibold mb-2">English Assessments</h2>
             {monthlyAssessment.length === 0 ? (
@@ -650,7 +1073,6 @@ const studentAttendanceChart = useMemo(
             )}
           </div>
 
-          {/* Arabic Assessment */}
           <div className="bg-white p-4 rounded shadow" style={{ width: '340px', height: '360px' }}>
             <h2 className="text-lg font-semibold mb-2">Arabic Assessments</h2>
             {monthlyAssessment.length === 0 ? (

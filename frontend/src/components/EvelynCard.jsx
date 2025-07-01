@@ -8,7 +8,7 @@ const EvelynCard = ({ name, id, mood, attendance, assessment, avatar }) => {
         <img
           src={avatar}
           alt="avatar"
-          className="w-14 h-14 rounded-full object-cover mr-4"
+          className="w-20 h-20 rounded-full object-cover mr-4"
         />
         <div>
           <h2 className="text-lg font-semibold">{name}</h2>

@@ -12,7 +12,7 @@ import studentDashboardRoute from './routes/studentDashboard.js';
 import teachersRoutes from './routes/teachers.js';
 import clerkRoutes from './routes/clerk.js';
 import autoGradeRoutes from './routes/autoGrade.js';
-
+import webhookRoutes from './routes/webhooks.js';
 
 dotenv.config();
 
