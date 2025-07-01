@@ -15,6 +15,11 @@ import LandingPage from './pages/LandingPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import AutoGrader from './pages/AutoGrader';
 
+import Quizzes     from './pages/Quizzes';
+import QuizBuilder from './pages/QuizBuilder';
+import TakeQuiz from './pages/TakeQuiz';
+import QuizResults from './pages/QuizResults';
+
 function RoleRedirect() {
   const { user } = useUser();
   const role = user?.publicMetadata?.role;
@@ -27,37 +32,7 @@ function RoleRedirect() {
 function App() {
   return (
     <Routes>
-      {/* Sign-in route */}
-      {/* <Route
-        path="/dashboard"
-        element={
-          <div className="min-h-screen flex items-center justify-center bg-[#F3F9FD]">
-            <SignedOut>
-              <SignIn
-                routing="path"
-                path="/dashboard"
-                redirectUrl="/dashboard"
-                appearance={{
-                  variables: {
-                    colorPrimary: "#2E87D4",
-                    colorText: "#1F2937",
-                    colorBackground: "#FFFFFF",
-                  },
-                  elements: {
-                    formButtonPrimary: "bg-[#2E87D4] hover:bg-[#1c6cb7]",
-                  },
-                }}
-              />
-            </SignedOut>
-
-            <SignedIn>
-              <RoleRedirect />
-            </SignedIn>
-          </div>
-        }
-      /> */}
-
-      {/* ✅ Protected student routes */}
+      {/* 🔐 Student Routes */}
       <Route
         path="/student/dashboard"
         element={
@@ -83,7 +58,7 @@ function App() {
         }
       />
 
-      {/* ✅ Protected teacher routes */}
+      {/* 🔐 Teacher Routes */}
       <Route
         path="/teacher/dashboard"
         element={
@@ -132,7 +107,6 @@ function App() {
           </ProtectedRoute>
         }
       />
-
       <Route
         path="/teacher/auto-grade"
         element={
@@ -141,38 +115,82 @@ function App() {
           </ProtectedRoute>
         }
       />
-
-      {/* Landing or fallback */}
-      <Route path="/" element={<LandingPage />} />
       <Route
-  path="/dashboard/*"
-  element={
-    <div className="min-h-screen flex items-center justify-center bg-[#F3F9FD]">
-      <SignedOut>
-        <SignIn
-          routing="path"
-          path="/dashboard"
-          redirectUrl="/dashboard"
-          appearance={{
-            variables: {
-              colorPrimary: "#2E87D4",
-              colorText: "#1F2937",
-              colorBackground: "#FFFFFF",
-            },
-            elements: {
-              formButtonPrimary: "bg-[#2E87D4] hover:bg-[#1c6cb7]",
-            },
-          }}
-        />
-      </SignedOut>
-      <SignedIn>
-        <RoleRedirect />
-      </SignedIn>
-    </div>
-  }
-/>
+        path="/teacher/quizzes"
+        element={
+          <ProtectedRoute allowedRole="teacher">
+            <Quizzes />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/teacher/quizzes/new"
+        element={
+          <ProtectedRoute allowedRole="teacher">
+            <QuizBuilder mode="new" />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/teacher/quizzes/:id/edit"
+        element={
+          <ProtectedRoute allowedRole="teacher">
+            <QuizBuilder mode="edit" />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* 🔐 Take Quiz Route */}
+      <Route
+        path="/teacher/quizzes/:id/take"
+        element={
+          <ProtectedRoute allowedRole="teacher">
+            <TakeQuiz />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/teacher/quizzes/results"
+        element={
+          <ProtectedRoute allowedRole="teacher">
+            <QuizResults />
+          </ProtectedRoute>
+        }
+      />
 
 
+      {/* 🔓 Public Landing Page */}
+      <Route path="/" element={<LandingPage />} />
+
+      {/* 🔐 Auth Page with Clerk */}
+      <Route
+        path="/dashboard/*"
+        element={
+          <div className="min-h-screen flex items-center justify-center bg-[#F3F9FD]">
+            <SignedOut>
+              <SignIn
+                routing="path"
+                path="/dashboard"
+                redirectUrl="/dashboard"
+                appearance={{
+                  variables: {
+                    colorPrimary: "#2E87D4",
+                    colorText: "#1F2937",
+                    colorBackground: "#FFFFFF",
+                  },
+                  elements: {
+                    formButtonPrimary: "bg-[#2E87D4] hover:bg-[#1c6cb7]",
+                  },
+                }}
+              />
+            </SignedOut>
+            <SignedIn>
+              <RoleRedirect />
+            </SignedIn>
+          </div>
+        }
+      />
     </Routes>
   );
 }
