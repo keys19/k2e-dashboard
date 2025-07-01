@@ -15,7 +15,7 @@ import LandingPage from './pages/LandingPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import AutoGrader from './pages/AutoGrader';
 
-import QuizList from './pages/QuizList';
+import Quizzes     from './pages/Quizzes';
 import QuizBuilder from './pages/QuizBuilder';
 import TakeQuiz from './pages/TakeQuiz';
 import QuizResults from './pages/QuizResults';
@@ -119,7 +119,7 @@ function App() {
         path="/teacher/quizzes"
         element={
           <ProtectedRoute allowedRole="teacher">
-            <QuizList />
+            <Quizzes />
           </ProtectedRoute>
         }
       />
@@ -132,13 +132,24 @@ function App() {
         }
       />
       <Route
-        path="/teacher/quizzes/edit/:id"
+        path="/teacher/quizzes/:id/edit"
         element={
           <ProtectedRoute allowedRole="teacher">
             <QuizBuilder mode="edit" />
           </ProtectedRoute>
         }
       />
+
+      {/* 🔐 Take Quiz Route */}
+      <Route
+        path="/teacher/quizzes/:id/take"
+        element={
+          <ProtectedRoute allowedRole="teacher">
+            <TakeQuiz />
+          </ProtectedRoute>
+        }
+      />
+
       <Route
         path="/teacher/quizzes/results"
         element={
@@ -148,15 +159,6 @@ function App() {
         }
       />
 
-      {/* 🔐 Student Quiz Route */}
-      <Route
-        path="/student/quizzes/take/:id"
-        element={
-          <ProtectedRoute allowedRole="student">
-            <TakeQuiz />
-          </ProtectedRoute>
-        }
-      />
 
       {/* 🔓 Public Landing Page */}
       <Route path="/" element={<LandingPage />} />

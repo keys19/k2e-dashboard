@@ -3,7 +3,7 @@
 import { NavLink } from 'react-router-dom';
 import { UserButton, useUser } from '@clerk/clerk-react';
 import { useEffect, useState } from 'react';
-import {ChevronRight, ScanLine, ChevronLeft, BarChart2, CalendarDays, BookOpen, ClipboardList, LineChart, Users, Menu, X } from 'lucide-react';
+import {ChevronRight, ScanLine, ChevronLeft, BarChart2, CalendarDays, BookOpen, ClipboardList, LineChart, Users, Menu, X, Layers } from 'lucide-react';
 import logoFull from '../assets/k2e-logo2.png';
 import logoCompact from '../assets/k2e-logo3.png';
 
