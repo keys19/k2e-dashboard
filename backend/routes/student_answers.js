@@ -46,7 +46,14 @@ router.get('/:id', async (req, res) => {
 
 // POST create a new student answer
 router.post('/', async (req, res) => {
-  const { response_id, student_id, quiz_id, question_id, answer_id, is_correct } = req.body;
+  const {
+    response_id,
+    student_id,
+    quiz_id,
+    question_id,
+    answer_id,
+    is_correct,
+  } = req.body;
 
   console.log('[POST] /student-answers payload:', req.body);
 
@@ -71,7 +78,16 @@ router.post('/', async (req, res) => {
 
   const { data, error } = await supabase
     .from('student_answers')
-    .insert([{ response_id, student_id, quiz_id, question_id, answer_id, is_correct }])
+    .insert([
+      {
+        response_id,
+        student_id,
+        quiz_id,
+        question_id,
+        answer_id,
+        is_correct,
+      },
+    ])
     .select();
 
   if (error) {

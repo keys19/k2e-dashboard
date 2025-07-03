@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useUser } from "@clerk/clerk-react";
 import axios from "axios";
+import { useUser } from "@clerk/clerk-react";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const COLORS = ["red", "blue", "yellow", "green"];
@@ -15,22 +15,31 @@ export default function TakeQuiz() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [quiz, setQuiz] = useState(null);
+  const [studentId, setStudentId] = useState(null);
   const [idx, setIdx] = useState(0);
   const [sel, setSel] = useState([]);
   const [busy, setBusy] = useState(true);
 
   useEffect(() => {
-    axios.get(`${BASE_URL}/quizzes/${id}`)
-      .then(res => {
-        setQuiz(res.data);
-        setSel(Array(res.data.slides.length).fill([]));
-      })
-      .catch(() => {
+    const fetchQuizAndStudent = async () => {
+      try {
+        const quizRes = await axios.get(`${BASE_URL}/quizzes/${id}`);
+        setQuiz(quizRes.data);
+        setSel(Array(quizRes.data.slides.length).fill([]));
+
+        const studentRes = await axios.get(`${BASE_URL}/students?clerk_user_id=${user.id}`);
+        setStudentId(studentRes.data[0]?.id);
+      } catch (err) {
+        console.error("❌ Failed to load quiz or student", err);
         alert("❌ Failed to load quiz");
-        navigate("/teacher/quizzes");
-      })
-      .finally(() => setBusy(false));
-  }, [id]);
+        navigate("/student/quizzes");
+      } finally {
+        setBusy(false);
+      }
+    };
+
+    fetchQuizAndStudent();
+  }, [id, user]);
 
   if (busy || !quiz) return <div className="p-6">Loading…</div>;
 
@@ -48,62 +57,79 @@ export default function TakeQuiz() {
     });
 
   const finishQuiz = async () => {
-    const role = user?.publicMetadata?.role;
-    const slides = quiz.slides;
+  const role = user?.publicMetadata?.role;
+  console.log("🔎 role is:", role);
 
-    try {
-      if (role === "student") {
-        for (let i = 0; i < slides.length; i++) {
-          const slide = slides[i];
-          const selected = sel[i] || [];
+  const slides = quiz.slides;
+  console.log("🧪 selected answers:", sel);
 
-          for (let answerIndex of selected) {
-            const answerObj = slide.answers[answerIndex];
-            const answer_id = answerObj?.id;
-            const is_correct = slide.correct?.includes(answerIndex) || false;
+  try {
+    if (role === "student") {
+      console.log("🎯 Student submitting answers...");
 
-            if (answer_id != null && slide.id != null) {
-              const responsePayload = {
-                response_id: Date.now() + Math.floor(Math.random() * 1000),
-                student_id: user.id,
-                quiz_id: id,
-                question_id: slide.id,
-                answer_id,
-                is_correct: Boolean(is_correct),
-              };
+      for (let i = 0; i < slides.length; i++) {
+        const slide = slides[i];
+        const selected = sel[i] || [];
 
-              await axios.post(`${BASE_URL}/student-answers`, responsePayload);
-            } else {
-              console.warn("Missing IDs", { slide, answerIndex, answerObj });
-            }
+        for (let answerIndex of selected) {
+          const answer = slide.answers[answerIndex];
+          const answer_id = answer?.answer_id;
+          const answer_text = answer?.answer_text || answer?.text || "";
+          const is_correct = Boolean(answer?.is_correct);
+
+
+          if (answer_id && slide.question_id) {
+            const responsePayload = {
+              response_id: Date.now() + Math.floor(Math.random() * 1000),
+              student_id: studentId,
+              quiz_id: id,
+              question_id: slide.question_id,
+              answer_id,
+              answer_text,
+              is_correct,
+          
+            };
+
+            console.log("📤 Sending answer:", responsePayload);
+            await axios.post(`${BASE_URL}/student-answers`, responsePayload);
+          } else {
+            console.warn("⚠️ Skipping invalid answer:", {
+              slide,
+              answerIndex,
+              answer,
+            });
           }
         }
-
-        navigate("/student/quizzes");
-      } else {
-        const answerObjs = slides.map((slide, i) => ({
-          question: slide.text,
-          image: slide.image || null,
-          allAnswers: slide.answers,
-          correctIndexes: slide.correct || [],
-          selectedIndexes: sel[i] || [],
-        }));
-
-        const score = answerObjs.filter(o => sameArray(o.correctIndexes, o.selectedIndexes)).length;
-
-        navigate("/teacher/quizzes/results", {
-          state: {
-            score,
-            total: slides.length,
-            answers: answerObjs,
-          },
-        });
       }
-    } catch (err) {
-      console.error("❌ Error posting student answers", err);
-      alert("Failed to save your answers.");
+
+      console.log("✅ All answers submitted, navigating...");
+      navigate("/student/quizzes");
+    } else {
+      console.log("👤 Not student role, showing results instead");
+      const answerObjs = slides.map((slide, i) => ({
+        question: slide.text,
+        image: slide.image || null,
+        allAnswers: slide.answers,
+        correctIndexes: slide.correct || [],
+        selectedIndexes: sel[i] || [],
+      }));
+
+      const score = answerObjs.filter(o => sameArray(o.correctIndexes, o.selectedIndexes)).length;
+
+      navigate("/teacher/quizzes/results", {
+        state: {
+          score,
+          total: slides.length,
+          answers: answerObjs,
+        },
+      });
     }
-  };
+  } catch (err) {
+    console.error("❌ Error posting student answers", err);
+    alert("Could not save your answers.");
+  }
+};
+
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#f3f4f6] px-6 py-10">
@@ -124,7 +150,6 @@ export default function TakeQuiz() {
           {currentSlide.answers.map((ans, i) => {
             const colour = COLORS[i % 4];
             const picked = chosen.includes(i);
-
             return (
               <button
                 key={i}
@@ -133,7 +158,7 @@ export default function TakeQuiz() {
                 bg-${colour}-600 hover:bg-${colour}-700
                 ${picked ? "ring-4 ring-purple-400" : ""}`}
               >
-                <span className="text-xl">{ICONS[i % 4]}</span> {ans.text || ans}
+                <span className="text-xl">{ICONS[i % 4]}</span> {ans.answer_text || ans.text || ans}
               </button>
             );
           })}

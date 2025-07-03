@@ -15,7 +15,7 @@ router.get('/', async (_req, res) => {
   res.json(data);
 });
 
-// GET single quiz with questions + answers
+// ✅ GET single quiz with questions + full answers
 router.get('/:id', async (req, res) => {
   const quiz_id = req.params.id;
 
@@ -37,18 +37,23 @@ router.get('/:id', async (req, res) => {
   const questionIds = questions.map(q => q.question_id);
   const { data: answers, error: aErr } = await supabase
     .from('answers')
-    .select('question_id, answer_text, is_correct')
+    .select('answer_id, question_id, answer_text, is_correct')
     .in('question_id', questionIds);
 
   if (aErr) return res.status(500).json({ error: aErr.message });
 
   const slides = questions.map((q, index) => {
     const qAnswers = answers.filter(a => a.question_id === q.question_id);
+
     return {
-      id: index + 1,
+      question_id: q.question_id,
       text: q.question_text,
       image: null,
-      answers: qAnswers.map(a => a.answer_text),
+      answers: qAnswers.map(a => ({
+        answer_id: a.answer_id,
+        answer_text: a.answer_text,
+        is_correct: a.is_correct,
+      })),
       correct: qAnswers.map((a, i) => a.is_correct ? i : null).filter(i => i !== null),
     };
   });
@@ -114,7 +119,6 @@ router.put('/:id', async (req, res) => {
   const { quiz_name, slides } = req.body;
 
   try {
-    // Update quiz title
     const { error: quizUpdateErr } = await supabase
       .from('quizzes')
       .update({ quiz_name })
@@ -122,7 +126,6 @@ router.put('/:id', async (req, res) => {
 
     if (quizUpdateErr) throw new Error(quizUpdateErr.message);
 
-    // Get existing questions
     const { data: oldQuestions, error: getQErr } = await supabase
       .from('questions')
       .select('question_id')
@@ -132,17 +135,13 @@ router.put('/:id', async (req, res) => {
 
     const oldQIds = oldQuestions.map(q => q.question_id);
 
-    // Delete answers first
     if (oldQIds.length > 0) {
       const { error: delAErr } = await supabase
         .from('answers')
         .delete()
         .in('question_id', oldQIds);
       if (delAErr) throw new Error(delAErr.message);
-    }
 
-    // Delete old questions
-    if (oldQIds.length > 0) {
       const { error: delQErr } = await supabase
         .from('questions')
         .delete()
@@ -150,7 +149,6 @@ router.put('/:id', async (req, res) => {
       if (delQErr) throw new Error(delQErr.message);
     }
 
-    // Insert updated questions and answers
     for (const q of slides) {
       const { data: question, error: insertQErr } = await supabase
         .from('questions')
