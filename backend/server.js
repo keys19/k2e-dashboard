@@ -12,8 +12,7 @@ import studentDashboardRoute from './routes/studentDashboard.js';
 import teachersRoutes from './routes/teachers.js';
 import clerkRoutes from './routes/clerk.js';
 import autoGradeRoutes from './routes/autoGrade.js';
-import webhookRoutes from './routes/webhooks.js';
-
+import translateRoute from './routes/translate.js';
 import quizzesRouter from './routes/quizzes.js';
 
 
@@ -47,6 +46,7 @@ app.use('/student-dashboard', studentDashboardRoute);
 app.use('/teachers', teachersRoutes);
 app.use('/auto-grade', autoGradeRoutes);
 app.use('/quizzes',           quizzesRouter);
+app.use('/api', translateRoute);
 app.use('/', clerkRoutes);
 app.get('/', (req, res) => {
   res.send('✅ Key2Enable backend is up and running!');
