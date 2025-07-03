@@ -1,10 +1,11 @@
+// backend/routes/quizzes.js
 import express from 'express';
 import supabase from '../supabaseClient.js';
 import { v4 as uuidv4 } from 'uuid';
 
 const router = express.Router();
 
-// GET all quizzes
+// GET all quizzes (basic info)
 router.get('/', async (_req, res) => {
   const { data, error } = await supabase
     .from('quizzes')
@@ -15,7 +16,7 @@ router.get('/', async (_req, res) => {
   res.json(data);
 });
 
-// ✅ GET single quiz with questions + full answers
+// GET single quiz with questions and full answers
 router.get('/:id', async (req, res) => {
   const quiz_id = req.params.id;
 
@@ -29,12 +30,13 @@ router.get('/:id', async (req, res) => {
 
   const { data: questions, error: qErr } = await supabase
     .from('questions')
-    .select('question_id, question_text')
+    .select('question_id, question_text, media_url')
     .eq('quiz_id', quiz_id);
 
   if (qErr) return res.status(500).json({ error: qErr.message });
 
   const questionIds = questions.map(q => q.question_id);
+
   const { data: answers, error: aErr } = await supabase
     .from('answers')
     .select('answer_id, question_id, answer_text, is_correct')
@@ -42,19 +44,22 @@ router.get('/:id', async (req, res) => {
 
   if (aErr) return res.status(500).json({ error: aErr.message });
 
-  const slides = questions.map((q, index) => {
+  const slides = questions.map(q => {
     const qAnswers = answers.filter(a => a.question_id === q.question_id);
 
     return {
       question_id: q.question_id,
       text: q.question_text,
-      image: null,
-      answers: qAnswers.map(a => ({
+      image: q.media_url || null,
+      answers: qAnswers.map(a => a.answer_text), // Return just text here
+      answerObjs: qAnswers.map(a => ({
         answer_id: a.answer_id,
         answer_text: a.answer_text,
-        is_correct: a.is_correct,
-      })),
-      correct: qAnswers.map((a, i) => a.is_correct ? i : null).filter(i => i !== null),
+        is_correct: a.is_correct
+      })), // Optional: include full objects if needed
+      correct: qAnswers
+        .map((a, i) => (a.is_correct ? i : null))
+        .filter(i => i !== null),
     };
   });
 
@@ -67,14 +72,14 @@ router.get('/:id', async (req, res) => {
 
 // POST create new quiz
 router.post('/', async (req, res) => {
-  const { title, description, slides } = req.body;
+  const { title, slides } = req.body;
   console.log('Incoming quiz payload:', req.body);
 
   const quiz_id = uuidv4();
 
   const { data: quiz, error: quizError } = await supabase
     .from('quizzes')
-    .insert([{ quiz_id, quiz_name: title, student_id: null }])
+    .insert([{ quiz_id, quiz_name: title }])
     .select()
     .single();
 
@@ -86,7 +91,11 @@ router.post('/', async (req, res) => {
   for (const q of slides) {
     const { data: question, error: questionError } = await supabase
       .from('questions')
-      .insert([{ quiz_id, question_text: q.text }])
+      .insert([{
+        quiz_id,
+        question_text: q.text,
+        media_url: q.image || null,
+      }])
       .select()
       .single();
 
@@ -96,12 +105,18 @@ router.post('/', async (req, res) => {
     }
 
     for (let i = 0; i < q.answers.length; i++) {
-      const answerText = q.answers[i];
+      const answerText = typeof q.answers[i] === 'string' 
+        ? q.answers[i] 
+        : q.answers[i].answer_text || ""; // Defensive, in case array has objects
       const isCorrect = q.correct.includes(i);
 
       const { error: answerError } = await supabase
         .from('answers')
-        .insert([{ question_id: question.question_id, answer_text: answerText, is_correct: isCorrect }]);
+        .insert([{
+          question_id: question.question_id,
+          answer_text: answerText,
+          is_correct: isCorrect,
+        }]);
 
       if (answerError) {
         console.error('❌ Error inserting answer:', answerError);
@@ -113,7 +128,7 @@ router.post('/', async (req, res) => {
   res.status(201).json({ quiz });
 });
 
-// PUT update quiz
+// PUT update quiz and overwrite all questions/answers
 router.put('/:id', async (req, res) => {
   const quiz_id = req.params.id;
   const { quiz_name, slides } = req.body;
@@ -152,19 +167,29 @@ router.put('/:id', async (req, res) => {
     for (const q of slides) {
       const { data: question, error: insertQErr } = await supabase
         .from('questions')
-        .insert([{ quiz_id, question_text: q.text }])
+        .insert([{
+          quiz_id,
+          question_text: q.text,
+          media_url: q.image || null,
+        }])
         .select()
         .single();
 
       if (insertQErr) throw new Error(insertQErr.message);
 
       for (let i = 0; i < q.answers.length; i++) {
-        const answerText = q.answers[i];
+        const answerText = typeof q.answers[i] === 'string' 
+          ? q.answers[i] 
+          : q.answers[i].answer_text || "";
         const isCorrect = q.correct.includes(i);
 
         const { error: insertAErr } = await supabase
           .from('answers')
-          .insert([{ question_id: question.question_id, answer_text: answerText, is_correct: isCorrect }]);
+          .insert([{
+            question_id: question.question_id,
+            answer_text: answerText,
+            is_correct: isCorrect,
+          }]);
 
         if (insertAErr) throw new Error(insertAErr.message);
       }
@@ -177,7 +202,7 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// DELETE a quiz and its related data
+// DELETE a quiz and its associated data
 router.delete('/:id', async (req, res) => {
   const quiz_id = req.params.id;
 

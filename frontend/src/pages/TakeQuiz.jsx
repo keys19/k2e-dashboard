@@ -158,7 +158,8 @@ export default function TakeQuiz() {
                 bg-${colour}-600 hover:bg-${colour}-700
                 ${picked ? "ring-4 ring-purple-400" : ""}`}
               >
-                <span className="text-xl">{ICONS[i % 4]}</span> {ans.answer_text || ans.text || ans}
+                <span className="text-xl">{ICONS[i % 4]}</span> {ans.answer_text}
+
               </button>
             );
           })}

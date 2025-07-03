@@ -72,7 +72,11 @@ export default function QuizResults() {
                     >
                       {icons[i % 4]}
                     </span>
-                    <span>{ans}</span>
+                    <span>
+                      {typeof ans === "object" && ans !== null
+                        ? ans.answer_text
+                        : String(ans)}
+                    </span>
                     {isCorrect && (
                       <span className="text-green-600 ml-auto">(Correct)</span>
                     )}
