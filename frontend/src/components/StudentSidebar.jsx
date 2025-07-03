@@ -26,6 +26,7 @@ const StudentSidebar = () => {
     { to: "/student/dashboard", icon: <Home size={18} />, label: "Dashboard" },
     { to: "/student/lessons", icon: <BookOpen size={18} />, label: "Lessons" },
     { to: "/student/report", icon: <FileText size={18} />, label: "Report" },
+    { to: "/student/quizzes", icon: <FileText size={18} />, label: "Quizzes" },
   ];
 
   return (

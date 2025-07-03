@@ -15,6 +15,7 @@ import autoGradeRoutes from './routes/autoGrade.js';
 import webhookRoutes from './routes/webhooks.js';
 
 import quizzesRouter from './routes/quizzes.js';
+import studentAnswerRoutes from './routes/student_answers.js';
 
 
 dotenv.config();
@@ -47,6 +48,7 @@ app.use('/student-dashboard', studentDashboardRoute);
 app.use('/teachers', teachersRoutes);
 app.use('/auto-grade', autoGradeRoutes);
 app.use('/quizzes',           quizzesRouter);
+app.use('/student-answers', studentAnswerRoutes);
 app.use('/', clerkRoutes);
 app.get('/', (req, res) => {
   res.send('✅ Key2Enable backend is up and running!');

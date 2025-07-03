@@ -20,6 +20,9 @@ import QuizBuilder from './pages/QuizBuilder';
 import TakeQuiz from './pages/TakeQuiz';
 import QuizResults from './pages/QuizResults';
 
+import StudentQuizzes from './pages/StudentQuizzes';
+
+
 function RoleRedirect() {
   const { user } = useUser();
   const role = user?.publicMetadata?.role;
@@ -154,6 +157,31 @@ function App() {
         path="/teacher/quizzes/results"
         element={
           <ProtectedRoute allowedRole="teacher">
+            <QuizResults />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/student/quizzes"
+        element={
+          <ProtectedRoute allowedRole="student">
+            <StudentQuizzes />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/student/quizzes/take/:id"
+        element={
+          <ProtectedRoute allowedRole="student">
+            <TakeQuiz />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/student/quizzes/results"
+        element={
+          <ProtectedRoute allowedRole="student">
             <QuizResults />
           </ProtectedRoute>
         }

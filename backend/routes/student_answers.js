@@ -46,18 +46,40 @@ router.get('/:id', async (req, res) => {
 
 // POST create a new student answer
 router.post('/', async (req, res) => {
-  const { student_id, quiz_id, question_id, answer_id, is_correct } = req.body;
+  const { response_id, student_id, quiz_id, question_id, answer_id, is_correct } = req.body;
 
-  if (!student_id || !quiz_id || !question_id || !answer_id || is_correct === undefined) {
-    return res.status(400).json({ error: 'Missing required fields' });
+  console.log('[POST] /student-answers payload:', req.body);
+
+  if (
+    typeof response_id !== 'number' ||
+    !student_id ||
+    !quiz_id ||
+    typeof question_id !== 'number' ||
+    typeof answer_id !== 'number' ||
+    typeof is_correct !== 'boolean'
+  ) {
+    console.warn('❌ Missing or invalid fields:', {
+      response_id,
+      student_id,
+      quiz_id,
+      question_id,
+      answer_id,
+      is_correct,
+    });
+    return res.status(400).json({ error: 'Missing or invalid required fields' });
   }
 
   const { data, error } = await supabase
     .from('student_answers')
-    .insert([{ student_id, quiz_id, question_id, answer_id, is_correct }])
+    .insert([{ response_id, student_id, quiz_id, question_id, answer_id, is_correct }])
     .select();
 
-  if (error) return res.status(500).json({ error: error.message });
+  if (error) {
+    console.error('❌ Supabase insert error:', error.message);
+    return res.status(500).json({ error: error.message });
+  }
+
+  console.log('✅ Student answer inserted:', data[0]);
   res.status(201).json(data[0]);
 });
 
