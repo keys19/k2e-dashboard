@@ -155,12 +155,13 @@ export default function TakeQuiz() {
                 key={i}
                 onClick={() => toggle(i)}
                 className={`flex items-center justify-center gap-2 px-4 py-3 rounded font-medium text-lg text-white
-                bg-${colour}-600 hover:bg-${colour}-700
-                ${picked ? "ring-4 ring-purple-400" : ""}`}
+                  bg-${colour}-600 hover:bg-${colour}-700
+                  ${picked ? "ring-4 ring-purple-400" : ""}`}
               >
-                <span className="text-xl">{ICONS[i % 4]}</span> {ans.answer_text}
-
+                <span className="text-xl">{ICONS[i % 4]}</span>
+                {typeof ans === "object" && ans !== null ? ans.answer_text : String(ans)}
               </button>
+
             );
           })}
         </div>

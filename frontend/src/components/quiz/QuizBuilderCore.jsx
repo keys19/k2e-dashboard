@@ -66,7 +66,7 @@ export default function QuizBuilderCore({ mode = "new", quizId = null }) {
     try {
       const slides = questions.map((q) => ({
         text: q.text,
-        answers: q.answers,
+        answers: q.answers.map((a) => typeof a === 'string' ? a : a.answer_text),
         correct: q.correct,
         image: q.image,
       }));
