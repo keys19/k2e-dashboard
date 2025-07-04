@@ -39,7 +39,7 @@ router.get('/:id', async (req, res) => {
 
   const { data: answers, error: aErr } = await supabase
     .from('answers')
-    .select('answer_id, question_id, answer_text, is_correct')
+    .select('answer_id, question_id, answer_text, is_correct, image_url')
     .in('question_id', questionIds);
 
   if (aErr) return res.status(500).json({ error: aErr.message });
@@ -51,12 +51,12 @@ router.get('/:id', async (req, res) => {
       question_id: q.question_id,
       text: q.question_text,
       image: q.media_url || null,
-      answers: qAnswers.map(a => a.answer_text), // Return just text here
-      answerObjs: qAnswers.map(a => ({
+      answers: qAnswers.map(a => ({
         answer_id: a.answer_id,
         answer_text: a.answer_text,
-        is_correct: a.is_correct
-      })), // Optional: include full objects if needed
+        is_correct: a.is_correct,
+        image: a.image_url || null,
+      })),
       correct: qAnswers
         .map((a, i) => (a.is_correct ? i : null))
         .filter(i => i !== null),
@@ -73,8 +73,6 @@ router.get('/:id', async (req, res) => {
 // POST create new quiz
 router.post('/', async (req, res) => {
   const { title, slides } = req.body;
-  console.log('Incoming quiz payload:', req.body);
-
   const quiz_id = uuidv4();
 
   const { data: quiz, error: quizError } = await supabase
@@ -105,9 +103,9 @@ router.post('/', async (req, res) => {
     }
 
     for (let i = 0; i < q.answers.length; i++) {
-      const answerText = typeof q.answers[i] === 'string' 
-        ? q.answers[i] 
-        : q.answers[i].answer_text || ""; // Defensive, in case array has objects
+      const answer = q.answers[i];
+      const answerText = typeof answer === 'string' ? answer : answer.answer_text || "";
+      const imageUrl = typeof answer === 'object' && answer.image ? answer.image : null;
       const isCorrect = q.correct.includes(i);
 
       const { error: answerError } = await supabase
@@ -115,6 +113,7 @@ router.post('/', async (req, res) => {
         .insert([{
           question_id: question.question_id,
           answer_text: answerText,
+          image_url: imageUrl,
           is_correct: isCorrect,
         }]);
 
@@ -178,9 +177,9 @@ router.put('/:id', async (req, res) => {
       if (insertQErr) throw new Error(insertQErr.message);
 
       for (let i = 0; i < q.answers.length; i++) {
-        const answerText = typeof q.answers[i] === 'string' 
-          ? q.answers[i] 
-          : q.answers[i].answer_text || "";
+        const answer = q.answers[i];
+        const answerText = typeof answer === 'string' ? answer : answer.answer_text || "";
+        const imageUrl = typeof answer === 'object' && answer.image ? answer.image : null;
         const isCorrect = q.correct.includes(i);
 
         const { error: insertAErr } = await supabase
@@ -188,6 +187,7 @@ router.put('/:id', async (req, res) => {
           .insert([{
             question_id: question.question_id,
             answer_text: answerText,
+            image_url: imageUrl,
             is_correct: isCorrect,
           }]);
 

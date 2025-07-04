@@ -1,7 +1,10 @@
+// src/components/quiz/QuizBuilderCore.jsx
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { UploadCloud, Trash2, Plus, Save } from "lucide-react";
 import axios from "axios";
+import imageIcon from "@/assets/image-icon.png"; // Make sure you save your PNG here
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -16,7 +19,7 @@ export default function QuizBuilderCore({ mode = "new", quizId = null }) {
   const navigate = useNavigate();
   const [title, setTitle] = useState("Enter Quiz title…");
   const [questions, setQuestions] = useState([
-    { id: 1, text: "", answers: ["", ""], correct: [], image: null },
+    { id: 1, text: "", answers: [{ answer_text: "" }, { answer_text: "" }], correct: [], image: null },
   ]);
   const [active, setActive] = useState(1);
   const [loading, setLoading] = useState(mode === "edit");
@@ -35,10 +38,12 @@ export default function QuizBuilderCore({ mode = "new", quizId = null }) {
           id: idx + 1,
           text: s.text,
           image: s.image || null,
-          answers: s.answers,
+          answers: s.answers.map((a) =>
+            typeof a === "string" ? { answer_text: a } : a
+          ),
           correct: s.correct,
         }));
-        setQuestions(loaded.length ? loaded : [{ id: 1, text: "", answers: ["", ""], correct: [], image: null }]);
+        setQuestions(loaded.length ? loaded : [{ id: 1, text: "", answers: [{ answer_text: "" }, { answer_text: "" }], correct: [], image: null }]);
       } catch (err) {
         alert("❌ Could not load quiz.");
         navigate("/teacher/quizzes");
@@ -51,7 +56,7 @@ export default function QuizBuilderCore({ mode = "new", quizId = null }) {
   const addQuestion = () =>
     setQuestions((prev) => [
       ...prev,
-      { id: prev.length + 1, text: "", answers: ["", ""], correct: [], image: null },
+      { id: prev.length + 1, text: "", answers: [{ answer_text: "" }, { answer_text: "" }], correct: [], image: null },
     ]);
 
   const uploadImg = (e) => {
@@ -66,7 +71,7 @@ export default function QuizBuilderCore({ mode = "new", quizId = null }) {
     try {
       const slides = questions.map((q) => ({
         text: q.text,
-        answers: q.answers.map((a) => typeof a === 'string' ? a : a.answer_text),
+        answers: q.answers,
         correct: q.correct,
         image: q.image,
       }));
@@ -181,33 +186,76 @@ export default function QuizBuilderCore({ mode = "new", quizId = null }) {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-4xl mb-6">
             {q.answers.map((ans, i) => (
-              <div key={i} className="flex w-full border rounded overflow-hidden bg-white">
+              <div key={i} className="flex w-full border rounded overflow-hidden bg-white items-center">
+                {/* Colored shape icon */}
                 <div
-                  className={`w-14 flex items-center justify-center text-white text-lg font-bold ${
+                  className={`w-14 h-full flex items-center justify-center text-white text-lg font-bold ${
                     ["bg-red-600", "bg-blue-600", "bg-yellow-600", "bg-green-600"][i % 4]
                   }`}
                 >
                   {icons[i % 4]}
                 </div>
+
+                {/* Text input */}
                 <input
-                  value={ans}
+                  value={typeof ans === "string" ? ans : ans.answer_text}
                   onChange={(e) =>
                     mutate((o) => {
-                      const newAns = o.answers.map((a, idx) => (idx === i ? e.target.value : a));
-                      return { ...o, answers: newAns };
+                      const updatedAnswers = [...o.answers];
+                      updatedAnswers[i] = {
+                        ...updatedAnswers[i],
+                        answer_text: e.target.value,
+                      };
+                      return { ...o, answers: updatedAnswers };
                     })
                   }
-                  placeholder={`Answer ${i + 1}${i > 1 ? " (optional)" : ""}`}
+                  placeholder={`Answer ${i + 1}`}
                   className="flex-1 px-3 py-2 text-sm"
                 />
+
+                {/* Image upload icon */}
+                <label className="px-2 cursor-pointer text-gray-500 hover:text-blue-600">
+                  <img src={imageIcon} alt="upload" className="w-5 h-5" />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (!file) return;
+                      const reader = new FileReader();
+                      reader.onload = () => {
+                        mutate((o) => {
+                          const updatedAnswers = [...o.answers];
+                          updatedAnswers[i] = {
+                            ...updatedAnswers[i],
+                            image: reader.result,
+                          };
+                          return { ...o, answers: updatedAnswers };
+                        });
+                      };
+                      reader.readAsDataURL(file);
+                    }}
+                    className="hidden"
+                  />
+                </label>
+
+                {/* Answer image thumbnail */}
+                {ans.image && (
+                  <img
+                    src={ans.image}
+                    alt="answer"
+                    className="w-10 h-10 object-cover rounded mr-2"
+                  />
+                )}
+
+                {/* Correct checkbox */}
                 <label className="border-l flex items-center px-3 bg-gray-50 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={q.correct.includes(i)}
                     onChange={() =>
                       mutate((o) => {
-                        const exists = o.correct.includes(i);
-                        const updated = exists
+                        const updated = o.correct.includes(i)
                           ? o.correct.filter((idx) => idx !== i)
                           : [...o.correct, i];
                         return { ...o, correct: updated };
@@ -215,6 +263,8 @@ export default function QuizBuilderCore({ mode = "new", quizId = null }) {
                     }
                   />
                 </label>
+
+                {/* Delete button */}
                 <button
                   onClick={() =>
                     mutate((o) => {
@@ -232,10 +282,16 @@ export default function QuizBuilderCore({ mode = "new", quizId = null }) {
                 </button>
               </div>
             ))}
+
           </div>
 
           <button
-            onClick={() => mutate((o) => ({ ...o, answers: [...o.answers, ""] }))}
+            onClick={() =>
+              mutate((o) => ({
+                ...o,
+                answers: [...o.answers, { answer_text: "" }],
+              }))
+            }
             className="bg-gray-700 hover:bg-gray-800 text-white text-sm px-4 py-2 rounded flex items-center gap-1"
           >
             <Plus size={14} /> Add more answers

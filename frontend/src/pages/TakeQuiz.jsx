@@ -57,91 +57,74 @@ export default function TakeQuiz() {
     });
 
   const finishQuiz = async () => {
-  const role = user?.publicMetadata?.role;
-  console.log("🔎 role is:", role);
+    const role = user?.publicMetadata?.role;
+    const slides = quiz.slides;
 
-  const slides = quiz.slides;
-  console.log("🧪 selected answers:", sel);
+    try {
+      if (role === "student") {
+        for (let i = 0; i < slides.length; i++) {
+          const slide = slides[i];
+          const selected = sel[i] || [];
 
-  try {
-    if (role === "student") {
-      console.log("🎯 Student submitting answers...");
+          for (let answerIndex of selected) {
+            const answer = slide.answers[answerIndex];
+            const answer_id = answer?.answer_id;
+            const answer_text = answer?.answer_text || answer?.text || "";
+            const is_correct = Boolean(answer?.is_correct);
 
-      for (let i = 0; i < slides.length; i++) {
-        const slide = slides[i];
-        const selected = sel[i] || [];
+            if (answer_id && slide.question_id) {
+              const responsePayload = {
+                response_id: Date.now() + Math.floor(Math.random() * 1000),
+                student_id: studentId,
+                quiz_id: id,
+                question_id: slide.question_id,
+                answer_id,
+                answer_text,
+                is_correct,
+              };
 
-        for (let answerIndex of selected) {
-          const answer = slide.answers[answerIndex];
-          const answer_id = answer?.answer_id;
-          const answer_text = answer?.answer_text || answer?.text || "";
-          const is_correct = Boolean(answer?.is_correct);
-
-
-          if (answer_id && slide.question_id) {
-            const responsePayload = {
-              response_id: Date.now() + Math.floor(Math.random() * 1000),
-              student_id: studentId,
-              quiz_id: id,
-              question_id: slide.question_id,
-              answer_id,
-              answer_text,
-              is_correct,
-          
-            };
-
-            console.log("📤 Sending answer:", responsePayload);
-            await axios.post(`${BASE_URL}/student-answers`, responsePayload);
-          } else {
-            console.warn("⚠️ Skipping invalid answer:", {
-              slide,
-              answerIndex,
-              answer,
-            });
+              await axios.post(`${BASE_URL}/student-answers`, responsePayload);
+            }
           }
         }
+
+        navigate("/student/quizzes");
+      } else {
+        const answerObjs = slides.map((slide, i) => ({
+          question: slide.text,
+          image: slide.image || null,
+          allAnswers: slide.answers,
+          correctIndexes: slide.correct || [],
+          selectedIndexes: sel[i] || [],
+        }));
+
+        const score = answerObjs.filter(o => sameArray(o.correctIndexes, o.selectedIndexes)).length;
+
+        navigate("/teacher/quizzes/results", {
+          state: {
+            score,
+            total: slides.length,
+            answers: answerObjs,
+          },
+        });
       }
-
-      console.log("✅ All answers submitted, navigating...");
-      navigate("/student/quizzes");
-    } else {
-      console.log("👤 Not student role, showing results instead");
-      const answerObjs = slides.map((slide, i) => ({
-        question: slide.text,
-        image: slide.image || null,
-        allAnswers: slide.answers,
-        correctIndexes: slide.correct || [],
-        selectedIndexes: sel[i] || [],
-      }));
-
-      const score = answerObjs.filter(o => sameArray(o.correctIndexes, o.selectedIndexes)).length;
-
-      navigate("/teacher/quizzes/results", {
-        state: {
-          score,
-          total: slides.length,
-          answers: answerObjs,
-        },
-      });
+    } catch (err) {
+      console.error("❌ Error posting student answers", err);
+      alert("Could not save your answers.");
     }
-  } catch (err) {
-    console.error("❌ Error posting student answers", err);
-    alert("Could not save your answers.");
-  }
-};
-
+  };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#f3f4f6] px-6 py-10">
       <h1 className="text-2xl font-bold mb-6">{quiz.title}</h1>
 
-      <div className="bg-white shadow rounded-lg p-8 w-full max-w-3xl">
+      <div className="bg-white shadow rounded-lg p-8 w-full max-w-4xl">
         <h2 className="text-lg font-semibold text-center mb-4">{currentSlide.text}</h2>
 
         {currentSlide.image && (
           <img
             src={currentSlide.image}
-            alt="Question visual"
+            alt="Question"
             className="mx-auto mb-4 rounded max-h-56"
           />
         )}
@@ -150,18 +133,31 @@ export default function TakeQuiz() {
           {currentSlide.answers.map((ans, i) => {
             const colour = COLORS[i % 4];
             const picked = chosen.includes(i);
+            const image = ans.image || ans.image_url || null;
+
             return (
               <button
                 key={i}
                 onClick={() => toggle(i)}
-                className={`flex items-center justify-center gap-2 px-4 py-3 rounded font-medium text-lg text-white
+                className={`flex flex-col items-center justify-center gap-2 px-4 py-4 rounded font-medium text-white text-lg
                   bg-${colour}-600 hover:bg-${colour}-700
                   ${picked ? "ring-4 ring-purple-400" : ""}`}
               >
-                <span className="text-xl">{ICONS[i % 4]}</span>
-                {typeof ans === "object" && ans !== null ? ans.answer_text : String(ans)}
-              </button>
+                <span className="text-2xl">{ICONS[i % 4]}</span>
 
+                {image && (
+                  <img
+                    src={image}
+                    alt={`Answer ${i + 1}`}
+                    className="w-32 h-32 object-cover rounded bg-white p-1 shadow"
+                  />
+                )}
+
+                {typeof ans.answer_text === "string" && ans.answer_text.trim() !== "" && (
+                    <span className="text-center">{ans.answer_text}</span>
+                  )}
+
+              </button>
             );
           })}
         </div>
