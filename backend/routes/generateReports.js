@@ -3,6 +3,7 @@ import express from 'express';
 import supabase from '../supabaseClient.js';
 import axios from 'axios';
 import dotenv from 'dotenv';
+import { stripMarkdown } from '../utils/stripMarkdown.js';
 dotenv.config();
 
 const router = express.Router();
@@ -126,7 +127,7 @@ router.post('/generate-report', async (req, res) => {
 
 
     // Build AI prompt
-    const prompt = `Generate a monthly student progress report for ${studentData.name} for ${month}.
+    const prompt = `Generate a monthly student progress report for ${studentData.name} for ${month}. Start report with the student's name and month, Dear Parents and then include the following sections:
 
     Subjects covered this month include the following dynamic categories based on assessments and lesson plans:
     ${[...new Set([...scores.map(s => s.category), ...plans.map(p => p.category)])].join(', ')}.
@@ -175,7 +176,9 @@ router.post('/generate-report', async (req, res) => {
       }
     );
 
-    const report = completion.data.choices[0].message.content;
+    const reportRaw = completion.data.choices[0].message.content;
+
+    const report = stripMarkdown(reportRaw);
 
     // Save report to DB
     const { error: saveError } = await supabase
@@ -230,12 +233,69 @@ router.get('/', async (req, res) => {
 });
 
 // POST /edit-content — manually update AI-generated content
+// router.post('/edit-content', async (req, res) => {
+//   const { student_id, month, content, generated_by = 'teacher@manual' } = req.body;
+
+//   console.log("✍️ Received manual content update:", req.body);
+
+//   if (!student_id || !month || !content) {
+//     return res.status(400).json({ error: 'Missing required fields' });
+//   }
+
+//   const cleanContent = stripMarkdown(content);
+
+//   try {
+//     const { error } = await supabase
+//       .from('ai_reports')
+//       .upsert(
+//         [{ student_id, month, cleanContent, generated_by }],
+//         { onConflict: ['student_id', 'month'] }
+//       );
+
+//     if (error) {
+//       console.error("❌ Supabase error in edit-content:", error);
+//       return res.status(500).json({ error: error.message });
+//     }
+
+//     res.json({ success: true });
+//   } catch (err) {
+//     console.error("🔥 Unexpected error in /edit-content:", err);
+//     res.status(500).json({ error: 'Internal server error', details: err.message });
+//   }
+// });
 router.post('/edit-content', async (req, res) => {
   const { student_id, month, content, generated_by = 'teacher@manual' } = req.body;
 
-  console.log("✍️ Received manual content update:", req.body);
-
   if (!student_id || !month || !content) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+
+  const cleanContent = stripMarkdown(content);
+
+  try {
+    const { error } = await supabase
+      .from('ai_reports')
+      .upsert(
+        [{ student_id, month, content: cleanContent, generated_by }],
+        { onConflict: ['student_id', 'month'] }
+      );
+
+    if (error) {
+      return res.status(500).json({ error: error.message });
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Internal server error', details: err.message });
+  }
+});
+
+
+// POST /edit-arabic — save Arabic version
+router.post('/edit-arabic', async (req, res) => {
+  const { student_id, month, content_arabic } = req.body;
+
+  if (!student_id || !month || !content_arabic) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
@@ -243,18 +303,18 @@ router.post('/edit-content', async (req, res) => {
     const { error } = await supabase
       .from('ai_reports')
       .upsert(
-        [{ student_id, month, content, generated_by }],
+        [{ student_id, month, content_arabic }],
         { onConflict: ['student_id', 'month'] }
       );
 
     if (error) {
-      console.error("❌ Supabase error in edit-content:", error);
+      console.error("❌ Supabase error in edit-arabic:", error);
       return res.status(500).json({ error: error.message });
     }
 
     res.json({ success: true });
   } catch (err) {
-    console.error("🔥 Unexpected error in /edit-content:", err);
+    console.error("🔥 Unexpected error in /edit-arabic:", err);
     res.status(500).json({ error: 'Internal server error', details: err.message });
   }
 });

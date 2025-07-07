@@ -12,8 +12,7 @@ import studentDashboardRoute from './routes/studentDashboard.js';
 import teachersRoutes from './routes/teachers.js';
 import clerkRoutes from './routes/clerk.js';
 import autoGradeRoutes from './routes/autoGrade.js';
-import webhookRoutes from './routes/webhooks.js';
-
+import translateRoute from './routes/translate.js';
 import quizzesRouter from './routes/quizzes.js';
 import studentAnswerRoutes from './routes/student_answers.js';
 
@@ -52,6 +51,7 @@ app.use('/student-dashboard', studentDashboardRoute);
 app.use('/teachers', teachersRoutes);
 app.use('/auto-grade', autoGradeRoutes);
 app.use('/quizzes',           quizzesRouter);
+app.use('/api', translateRoute);
 app.use('/student-answers', studentAnswerRoutes);
 app.use('/quiz-groups', quizGroupRoutes);
 app.use('/student-quizzes', studentQuizzesRoute);

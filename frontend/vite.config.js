@@ -27,5 +27,10 @@ export default defineConfig({
   },
   optimizeDeps: {
     include: ['pdfjs-dist']
+  },
+  server: {
+  proxy: {
+    '/api': 'http://localhost:3000'
   }
+}
 });

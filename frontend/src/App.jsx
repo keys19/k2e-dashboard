@@ -14,7 +14,7 @@ import StudentGroups from './pages/StudentGroups';
 import LandingPage from './pages/LandingPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import AutoGrader from './pages/AutoGrader';
-
+import RolePending from './components/RolePending';
 import Quizzes     from './pages/Quizzes';
 import QuizBuilder from './pages/QuizBuilder';
 import TakeQuiz from './pages/TakeQuiz';
@@ -29,12 +29,16 @@ function RoleRedirect() {
 
   if (role === 'teacher') return <Navigate to="/teacher/dashboard" replace />;
   if (role === 'student') return <Navigate to="/student/dashboard" replace />;
-  return <div>⚠️ Role not assigned. Please contact admin.</div>;
+  // return <div>⚠️ Role not assigned. Please contact admin.</div>;
+  return <Navigate to="/role-pending" replace />;
 }
 
 function App() {
   return (
     <Routes>
+
+       <Route path="/role-pending" element={<RolePending />} />
+
       {/* 🔐 Student Routes */}
       <Route
         path="/student/dashboard"
@@ -186,6 +190,9 @@ function App() {
           </ProtectedRoute>
         }
       />
+
+      <Route path="/undefined/*" element={<RolePending />} />
+
 
 
       {/* 🔓 Public Landing Page */}
