@@ -4,16 +4,35 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { UploadCloud, Trash2, Plus, Save } from "lucide-react";
 import axios from "axios";
-import imageIcon from "@/assets/image-icon.png"; // Make sure you save your PNG here
+import imageIcon from "@/assets/image-icon.png"; 
+
+import shape1 from "@/assets/shape1.png";
+import shape2 from "@/assets/shape2.png";
+import shape3 from "@/assets/shape3.png";
+import shape4 from "@/assets/shape4.png";
+import shape5 from "@/assets/shape5.png";
+import shape6 from "@/assets/shape6.png";
+import shape7 from "@/assets/shape7.png";
+import shape8 from "@/assets/shape8.png";
+import shape9 from "@/assets/shape9.png";
+
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-const icons = [
-  <span className="text-xl leading-none">▲</span>,
-  <span className="text-xl leading-none">◆</span>,
-  <span className="text-xl leading-none">●</span>,
-  <span className="text-xl leading-none">■</span>,
+const icons = [shape1, shape2, shape3, shape4, shape5, shape6, shape7, shape8, shape9];
+const iconColors = [
+  "bg-[#1E78C8]", // triangle (blue)
+  "bg-[#5E2B90]", // star (purple)
+  "bg-[#D061A8]", // teardrop (pink)
+  "bg-[#38A24E]", // plus (green)
+  "bg-[#3E3D3F]", // fork-like (dark grey)
+  "bg-[#C8422B]", // x-shape (red)
+  "bg-[#F0DF3A]", // moon (yellow)
+  "bg-[#E28C2C]", // lightning bolt (orange)
+  "bg-[#8C6849]", // diamond (brown)
 ];
+
+
 
 export default function QuizBuilderCore({ mode = "new", quizId = null }) {
   const navigate = useNavigate();
@@ -189,12 +208,14 @@ export default function QuizBuilderCore({ mode = "new", quizId = null }) {
               <div key={i} className="flex w-full border rounded overflow-hidden bg-white items-center">
                 {/* Colored shape icon */}
                 <div
-                  className={`w-14 h-full flex items-center justify-center text-white text-lg font-bold ${
-                    ["bg-red-600", "bg-blue-600", "bg-yellow-600", "bg-green-600"][i % 4]
-                  }`}
-                >
-                  {icons[i % 4]}
-                </div>
+                    className={`w-14 h-full flex items-center justify-center bg-white border-r ${
+                      iconColors[i % iconColors.length]
+
+                    }`}
+                  >
+                    <img src={icons[i % icons.length]} alt="icon" className="w-6 h-6" />
+                  </div>
+
 
                 {/* Text input */}
                 <input

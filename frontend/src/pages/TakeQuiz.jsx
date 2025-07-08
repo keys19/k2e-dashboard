@@ -3,9 +3,32 @@ import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useUser } from "@clerk/clerk-react";
 
+import shape1 from "../assets/shape1.png";
+import shape2 from "../assets/shape2.png";
+import shape3 from "../assets/shape3.png";
+import shape4 from "../assets/shape4.png";
+import shape5 from "../assets/shape5.png";
+import shape6 from "../assets/shape6.png";
+import shape7 from "../assets/shape7.png";
+import shape8 from "../assets/shape8.png";
+import shape9 from "../assets/shape9.png";
+import nextIcon from "../assets/shape11.png";
+
+const ICONS = [shape1, shape2, shape3, shape4, shape5, shape6, shape7, shape8, shape9];
+
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
-const COLORS = ["red", "blue", "yellow", "green"];
-const ICONS = ["▲", "◆", "●", "■"];
+
+const COLORS = [
+  "bg-[#F0DF3A]", // moon
+  "bg-[#E28C2C]", // lightning
+  "bg-[#8C6849]", // diamond
+  "bg-[#38A24E]", // plus
+  "bg-[#3E3D3F]", // fork
+  "bg-[#C8422B]", // x
+  "bg-[#1E78C8]", // triangle
+  "bg-[#5E2B90]", // star
+  "bg-[#D061A8]", // teardrop
+];
 
 const sameArray = (a = [], b = []) =>
   a.length === b.length && a.slice().sort().every((v, i) => v === b.slice().sort()[i]);
@@ -41,14 +64,12 @@ export default function TakeQuiz() {
     fetchQuizAndStudent();
   }, [id, user]);
 
-  if (busy || !quiz) return <div className="p-6">Loading…</div>;
-
-  const currentSlide = quiz.slides[idx];
+  const currentSlide = quiz?.slides?.[idx] || [];
   const chosen = sel[idx] || [];
 
   const toggle = (aIdx) =>
-    setSel(prev => {
-      const copy = prev.map(a => [...a]);
+    setSel((prev) => {
+      const copy = prev.map((a) => [...a]);
       const cur = copy[idx];
       const pos = cur.indexOf(aIdx);
       pos >= 0 ? cur.splice(pos, 1) : cur.push(aIdx);
@@ -98,7 +119,9 @@ export default function TakeQuiz() {
           selectedIndexes: sel[i] || [],
         }));
 
-        const score = answerObjs.filter(o => sameArray(o.correctIndexes, o.selectedIndexes)).length;
+        const score = answerObjs.filter((o) =>
+          sameArray(o.correctIndexes, o.selectedIndexes)
+        ).length;
 
         navigate("/teacher/quizzes/results", {
           state: {
@@ -113,6 +136,38 @@ export default function TakeQuiz() {
       alert("Could not save your answers.");
     }
   };
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      const shapeKeyMap = {
+        '7': 0, '8': 1, '9': 2,
+        '4': 3, '5': 4, '6': 5,
+        '1': 6, '2': 7, '3': 8,
+        'a': 0, 'b': 1,
+      };
+      const key = e.key.toLowerCase();
+
+      // Toggle answer
+      const answerIdx = shapeKeyMap[key];
+      if (answerIdx !== undefined && answerIdx < currentSlide.answers.length) {
+        toggle(answerIdx);
+      }
+
+      // Handle "b" for next
+      if (key === 'b') {
+        if (idx + 1 < quiz.slides.length) {
+          setIdx(idx + 1);
+        } else {
+          finishQuiz();
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [currentSlide, idx, quiz, finishQuiz]);
+
+  if (busy || !quiz) return <div className="p-6">Loading…</div>;
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#f3f4f6] px-6 py-10">
@@ -129,9 +184,14 @@ export default function TakeQuiz() {
           />
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div
+          className={`grid gap-4 ${
+            currentSlide.answers.length > 4
+              ? "grid-cols-1 sm:grid-cols-2 md:grid-cols-3"
+              : "grid-cols-1 sm:grid-cols-2"
+          }`}
+        >
           {currentSlide.answers.map((ans, i) => {
-            const colour = COLORS[i % 4];
             const picked = chosen.includes(i);
             const image = ans.image || ans.image_url || null;
 
@@ -139,24 +199,29 @@ export default function TakeQuiz() {
               <button
                 key={i}
                 onClick={() => toggle(i)}
-                className={`flex flex-col items-center justify-center gap-2 px-4 py-4 rounded font-medium text-white text-lg
-                  bg-${colour}-600 hover:bg-${colour}-700
-                  ${picked ? "ring-4 ring-purple-400" : ""}`}
+                className={`flex items-center gap-4 w-full px-6 py-6 rounded font-medium text-white text-lg
+                  ${COLORS[i % COLORS.length]} ${picked ? "ring-4 ring-purple-400" : ""}`}
               >
-                <span className="text-2xl">{ICONS[i % 4]}</span>
+                <img
+                  src={ICONS[i % ICONS.length]}
+                  alt="icon"
+                  className="w-28 h-28 shrink-0"
+                />
 
-                {image && (
-                  <img
-                    src={image}
-                    alt={`Answer ${i + 1}`}
-                    className="w-32 h-32 object-cover rounded bg-white p-1 shadow"
-                  />
-                )}
+                <div className="flex-1 text-left">
+                  {typeof ans.answer_text === "string" &&
+                    ans.answer_text.trim() !== "" && (
+                      <div className="text-2xl font-semibold">{ans.answer_text}</div>
+                    )}
 
-                {typeof ans.answer_text === "string" && ans.answer_text.trim() !== "" && (
-                    <span className="text-center">{ans.answer_text}</span>
+                  {image && (
+                    <img
+                      src={image}
+                      alt={`Answer ${i + 1}`}
+                      className="mt-2 w-32 h-32 object-cover rounded bg-white p-1 shadow"
+                    />
                   )}
-
+                </div>
               </button>
             );
           })}
@@ -164,9 +229,12 @@ export default function TakeQuiz() {
 
         <div className="flex justify-center mt-6">
           <button
-            onClick={idx + 1 < quiz.slides.length ? () => setIdx(idx + 1) : finishQuiz}
-            className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded"
+            onClick={
+              idx + 1 < quiz.slides.length ? () => setIdx(idx + 1) : finishQuiz
+            }
+            className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded"
           >
+            <img src={nextIcon} alt="Next" className="w-10 h-10" />
             {idx + 1 < quiz.slides.length ? "Next" : "Finish"}
           </button>
         </div>

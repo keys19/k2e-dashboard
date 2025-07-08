@@ -2,6 +2,17 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import html2pdf from "html2pdf.js";
 
+import shape1 from "../assets/shape1.png";
+import shape2 from "../assets/shape2.png";
+import shape3 from "../assets/shape3.png";
+import shape4 from "../assets/shape4.png";
+import shape5 from "../assets/shape5.png";
+import shape6 from "../assets/shape6.png";
+import shape7 from "../assets/shape7.png";
+import shape8 from "../assets/shape8.png";
+import shape9 from "../assets/shape9.png";
+
+
 export default function QuizResults() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -11,7 +22,7 @@ export default function QuizResults() {
     answers = [], // [{ question, image?, selectedIndexes, correctIndexes, allAnswers }]
   } = location.state || {};
 
-  const icons = ["▲", "◆", "●", "■"];
+  const ICONS = [shape1, shape2, shape3, shape4, shape5, shape6, shape7, shape8, shape9];
   const colors = ["red", "blue", "yellow", "green"];
 
   const handleDownload = () => {
@@ -64,9 +75,11 @@ export default function QuizResults() {
                       ${isCorrect ? "border-green-500" : "border-gray-300"}
                       ${isSelected ? "bg-purple-100" : "bg-white"}`}
                   >
-                    <span className={`text-${colors[i % 4]}-600 font-bold text-lg`}>
-                      {icons[i % 4]}
-                    </span>
+                    <img
+                      src={ICONS[i % ICONS.length]}
+                      alt="icon"
+                      className="w-6 h-6"
+                    />
 
                     {image && (
                       <img
