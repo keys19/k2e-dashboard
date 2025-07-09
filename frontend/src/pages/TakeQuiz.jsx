@@ -13,21 +13,15 @@ import shape7 from "../assets/shape7.png";
 import shape8 from "../assets/shape8.png";
 import shape9 from "../assets/shape9.png";
 import nextIcon from "../assets/shape11.png";
+import backIcon from "../assets/shape12.png";
 
 const ICONS = [shape1, shape2, shape3, shape4, shape5, shape6, shape7, shape8, shape9];
-
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 const COLORS = [
-  "bg-[#F0DF3A]", // moon
-  "bg-[#E28C2C]", // lightning
-  "bg-[#8C6849]", // diamond
-  "bg-[#38A24E]", // plus
-  "bg-[#3E3D3F]", // fork
-  "bg-[#C8422B]", // x
-  "bg-[#1E78C8]", // triangle
-  "bg-[#5E2B90]", // star
-  "bg-[#D061A8]", // teardrop
+  "bg-[#F0DF3A]", "bg-[#E28C2C]", "bg-[#8C6849]",
+  "bg-[#38A24E]", "bg-[#3E3D3F]", "bg-[#C8422B]",
+  "bg-[#1E78C8]", "bg-[#5E2B90]", "bg-[#D061A8]",
 ];
 
 const sameArray = (a = [], b = []) =>
@@ -143,34 +137,47 @@ export default function TakeQuiz() {
         '7': 0, '8': 1, '9': 2,
         '4': 3, '5': 4, '6': 5,
         '1': 6, '2': 7, '3': 8,
-        'a': 0, 'b': 1,
       };
       const key = e.key.toLowerCase();
 
-      // Toggle answer
       const answerIdx = shapeKeyMap[key];
       if (answerIdx !== undefined && answerIdx < currentSlide.answers.length) {
         toggle(answerIdx);
       }
 
-      // Handle "b" for next
-      if (key === 'b') {
-        if (idx + 1 < quiz.slides.length) {
-          setIdx(idx + 1);
+      if (key === "b") {
+        idx + 1 < quiz.slides.length ? setIdx(idx + 1) : finishQuiz();
+      }
+
+      if (key === "a") {
+        if (idx > 0) {
+          setIdx(idx - 1);
         } else {
-          finishQuiz();
+          navigate("/student/quizzes");
         }
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [currentSlide, idx, quiz, finishQuiz]);
+  }, [currentSlide, idx, quiz]);
 
   if (busy || !quiz) return <div className="p-6">Loading…</div>;
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[#f3f4f6] px-6 py-10">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-[#f3f4f6] px-6 py-10 relative">
+      {/* Back Button */}
+      <button
+        onClick={() => {
+          if (idx > 0) setIdx(idx - 1);
+          else navigate("/student/quizzes");
+        }}
+        className="absolute top-4 left-4 flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+      >
+        <img src={backIcon} alt="Back" className="w-9 h-9" />
+        Back
+      </button>
+
       <h1 className="text-2xl font-bold mb-6">{quiz.title}</h1>
 
       <div className="bg-white shadow rounded-lg p-8 w-full max-w-4xl">
@@ -229,10 +236,8 @@ export default function TakeQuiz() {
 
         <div className="flex justify-center mt-6">
           <button
-            onClick={
-              idx + 1 < quiz.slides.length ? () => setIdx(idx + 1) : finishQuiz
-            }
-            className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded"
+            onClick={idx + 1 < quiz.slides.length ? () => setIdx(idx + 1) : finishQuiz}
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded"
           >
             <img src={nextIcon} alt="Next" className="w-10 h-10" />
             {idx + 1 < quiz.slides.length ? "Next" : "Finish"}
