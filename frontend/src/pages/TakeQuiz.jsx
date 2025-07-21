@@ -36,6 +36,7 @@ export default function TakeQuiz() {
   const [idx, setIdx] = useState(0);
   const [sel, setSel] = useState([]);
   const [busy, setBusy] = useState(true);
+  const [showIcons, setShowIcons] = useState(true); // NEW toggle state
 
   useEffect(() => {
     const fetchQuizAndStudent = async () => {
@@ -166,6 +167,7 @@ export default function TakeQuiz() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#f3f4f6] px-6 py-10 relative">
+      {/* Back Button */}
       <button
         onClick={() => {
           if (idx > 0) setIdx(idx - 1);
@@ -173,8 +175,16 @@ export default function TakeQuiz() {
         }}
         className="absolute top-4 left-4 flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
       >
-        <img src={backIcon} alt="Back" className="w-9 h-9" />
+        {showIcons && <img src={backIcon} alt="Back" className="w-9 h-9" />}
         Back
+      </button>
+
+      {/* Toggle Button (Top Right) */}
+      <button
+        onClick={() => setShowIcons((prev) => !prev)}
+        className="absolute top-4 right-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+      >
+        Key-X {showIcons ? "On" : "Off"}
       </button>
 
       <h1 className="text-2xl font-bold mb-6">{quiz.title}</h1>
@@ -204,21 +214,23 @@ export default function TakeQuiz() {
                     className={`relative flex items-center w-full px-6 py-6 rounded font-medium text-white text-lg
                       ${COLORS[i % COLORS.length]} ${picked ? "ring-4 ring-purple-400" : ""}`}
                     style={{
-                      paddingLeft: isLeft ? "4.5rem" : "1.5rem",
-                      paddingRight: isLeft ? "1.5rem" : "4.5rem",
+                      paddingLeft: isLeft ? (showIcons ? "4.5rem" : "1.5rem") : "1.5rem",
+                      paddingRight: isLeft ? "1.5rem" : (showIcons ? "4.5rem" : "1.5rem"),
                     }}
                   >
-                    <div
-                      className={`absolute top-1/2 transform -translate-y-1/2 z-10 shadow-lg border-4 border-white rounded-full ${
-                        isLeft ? "-left-12" : "-right-12"
-                      }`}
-                    >
-                      <img
-                        src={ICONS[i % ICONS.length]}
-                        alt="icon"
-                        className="w-20 h-20 rounded-full"
-                      />
-                    </div>
+                    {showIcons && (
+                      <div
+                        className={`absolute top-1/2 transform -translate-y-1/2 z-10 shadow-lg border-4 border-white rounded-full ${
+                          isLeft ? "-left-12" : "-right-12"
+                        }`}
+                      >
+                        <img
+                          src={ICONS[i % ICONS.length]}
+                          alt="icon"
+                          className="w-20 h-20 rounded-full"
+                        />
+                      </div>
+                    )}
 
                     <div className="flex-1 text-left">
                       {typeof ans.answer_text === "string" && ans.answer_text.trim() !== "" && (
@@ -244,7 +256,7 @@ export default function TakeQuiz() {
             onClick={idx + 1 < quiz.slides.length ? () => setIdx(idx + 1) : finishQuiz}
             className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded"
           >
-            <img src={nextIcon} alt="Next" className="w-10 h-10" />
+            {showIcons && <img src={nextIcon} alt="Next" className="w-10 h-10" />}
             {idx + 1 < quiz.slides.length ? "Next" : "Finish"}
           </button>
         </div>
