@@ -18,7 +18,10 @@ router.get('/', async (req, res) => {
       .eq('month', month)
       .eq('language', language);
 
-    if (week) query = query.eq('week', week);
+    // if (week) query = query.eq('week', week);
+    if (week !== undefined && week !== null && week !== '') {
+  query = query.eq('week', week);
+}
 
     const { data, error } = await query;
 

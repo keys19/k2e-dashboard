@@ -718,6 +718,8 @@ function TeacherDashboard() {
   const [attendanceType, setAttendanceType] = useState('week');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [studentAssessmentProgress, setStudentAssessmentProgress] = useState([]);
+
 
   function getCurrentMonthString() {
     const now = new Date();
@@ -869,6 +871,22 @@ function TeacherDashboard() {
     fetchStudentAttendance();
   }, [selectedGroup, selectedMonth]);
 
+  useEffect(() => {
+  if (!selectedGroup || !selectedMonth) return;
+  const fetchStudentAssessments = async () => {
+    try {
+      const res = await axios.get(`${BASE_URL}/stats/assessments/student-progress`, {
+        params: { group_id: selectedGroup, month: selectedMonth },
+      });
+      setStudentAssessmentProgress(res.data);
+    } catch (err) {
+      console.error('Error fetching student assessments:', err);
+    }
+  };
+  fetchStudentAssessments();
+}, [selectedGroup, selectedMonth]);
+
+
   const moodTranslation = {
     Excellent: 'Excellent',
     Good: 'Happy',
@@ -956,6 +974,32 @@ function TeacherDashboard() {
     [studentAttendance]
   );
 
+  const studentAssessmentChart = useMemo(() =>
+  studentAssessmentProgress.length === 0 ? (
+    <p className="text-sm text-gray-400">No data</p>
+  ) : (
+    <ResponsiveContainer width="100%" height={250}>
+      <BarChart
+        data={studentAssessmentProgress}
+        margin={{ top: 20, right: 30, left: 30, bottom: 40 }}
+      >
+        <CartesianGrid strokeDasharray="3 3" />
+        <XAxis
+          dataKey="name"
+          interval={0}
+          angle={-30}
+          textAnchor="end"
+          tick={{ fontSize: 10 }}
+        />
+        <YAxis domain={[0, 100]} tickCount={6} />
+        <BarTooltip />
+        <Bar dataKey="English" fill="#60a5fa" />
+        <Bar dataKey="Arabic" fill="#f87171" />
+      </BarChart>
+    </ResponsiveContainer>
+  ), [studentAssessmentProgress]);
+
+
   if (loading)
     return (
       <div className="flex justify-center items-center h-screen">
@@ -1018,7 +1062,7 @@ function TeacherDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-white p-4 rounded shadow col-span-1">
             <div className="flex items-center justify-between mb-2">
-              <h2 className="text-lg font-semibold">Mood Dashboard</h2>
+              <h2 className="text-lg font-semibold">Mood Board</h2>
               <Select value={moodType} onValueChange={setMoodType}>
                 <SelectTrigger className="w-28 text-sm border-gray-300">
                   <SelectValue placeholder="Select" />
@@ -1056,6 +1100,13 @@ function TeacherDashboard() {
             </div>
           </div>
 
+          <div className="bg-white p-4 rounded shadow col-span-1 md:col-span-3 overflow-x-auto">
+          <h2 className="text-lg font-semibold mb-2">Student Assessment % this month</h2>
+          <div style={{ minWidth: `${studentAssessmentProgress.length * 80}px`, height: '250px' }}>
+            {studentAssessmentChart}
+          </div>
+        </div>
+
           <div className="bg-white p-4 rounded shadow" style={{ width: '320px', height: '360px' }}>
             <h2 className="text-lg font-semibold mb-2">English Assessments</h2>
             {monthlyAssessment.length === 0 ? (
@@ -1089,6 +1140,9 @@ function TeacherDashboard() {
               </ResponsiveContainer>
             )}
           </div>
+
+          
+
         </div>
       </div>
     </div>
