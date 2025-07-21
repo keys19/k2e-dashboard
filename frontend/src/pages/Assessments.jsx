@@ -1,7 +1,7 @@
 // Assessments.jsx
 // Description: Assessments management page for teachers
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
 import Sidebar from "../components/Sidebar";
 import { Button } from "@/components/ui/button";
@@ -74,41 +74,30 @@ function Assessments() {
   }, [month, view]);
 
   const fetchData = async () => {
-    const params = { month, language };
-    if (view === "weekly") params.week = week;
-    if (groupId) params.group_id = groupId;
+  // Prevent API calls if groupId is not ready
+  if (!groupId || groupId.length !== 36) return;
 
-    // const [studentsRes, assessmentsRes, lessonPlanRes] = await Promise.all([
-    //   axios.get(`${BASE_URL}/students`, { params }),
-    //   axios.get(`${BASE_URL}/assessments`, { params }),
-    //   axios.get(`${BASE_URL}/lesson-plans`, { params })
-    // ]);
+  const params = { month, language, group_id: groupId };
+  if (view === "weekly") params.week = week;
 
   const lessonPlanPromise = axios.get(`${BASE_URL}/lesson-plans`, {
-  params: {
-    month,
-    language,
-    group_id: groupId
-    // don't filter by week — fetch all!
-  }
-});
+    params: {
+      ...params,
+      ...(view === "weekly" && { week })
+    }
+  });
 
-const [studentsRes, assessmentsRes, lessonPlanRes] = await Promise.all([
-  axios.get(`${BASE_URL}/students`, { params }),
-  axios.get(`${BASE_URL}/assessments`, { params }),
-  lessonPlanPromise
-]);
+  const [studentsRes, assessmentsRes, lessonPlanRes] = await Promise.all([
+    axios.get(`${BASE_URL}/students`, { params }),
+    axios.get(`${BASE_URL}/assessments`, { params }),
+    lessonPlanPromise
+  ]);
 
-    setStudents(studentsRes.data);
-    setEntries(assessmentsRes.data);
-    setLessonPlans(lessonPlanRes.data);
-  };
+  setStudents(studentsRes.data);
+  setEntries(assessmentsRes.data);
+  setLessonPlans(lessonPlanRes.data);
+};
 
-  // const fetchGroups = async () => {
-  //   const res = await axios.get(`${BASE_URL}/groups`);
-  //   setGroupOptions(res.data);
-  //   setGroupId(res.data[0]?.id || "");
-  // };
   const fetchGroups = async () => {
   const res = await axios.get(`${BASE_URL}/groups`);
   setGroupOptions(res.data);
@@ -132,27 +121,42 @@ const [studentsRes, assessmentsRes, lessonPlanRes] = await Promise.all([
     fetchData();
   }, [month, language, view, week, groupId]);
 
-  const handleChange = (studentName, category, field, value) => {
-    setEntries(prev => {
-      const newEntries = [...prev];
-      const index = newEntries.findIndex(e => e.students?.name === studentName && e.category === category);
 
-      if (index >= 0) {
-        newEntries[index] = { ...newEntries[index], [field]: value };
-      } else {
-        newEntries.push({
-          students: { name: studentName },
-          category,
-          raw_score: field === 'raw_score' ? value : 0,
-          max_score: field === 'max_score' ? value : 0,
-          language,
-          month,
-          isNew: true
-        });
-      }
-      return newEntries;
-    });
-  };
+  const handleChange = (studentName, category, field, value) => {
+  setEntries(prev => {
+    const newEntries = [...prev];
+
+    const index = newEntries.findIndex(e => 
+      e.students?.name === studentName &&
+      e.category === category &&
+      (view !== "weekly" || e.week === week) // Only match correct week in weekly view
+    );
+
+    if (index >= 0) {
+      newEntries[index] = {
+        ...newEntries[index],
+        [field]: value,
+        isNew: false // in case editing an existing entry
+      };
+    } else {
+      newEntries.push({
+        students: { name: studentName },
+        category,
+        raw_score: field === 'raw_score' ? value : 0,
+        max_score: field === 'max_score' ? value : 0,
+        language,
+        month,
+        week,
+        week_start: weekList.find(w => w.label === week)?.start,
+        week_end: weekList.find(w => w.label === week)?.end,
+        group_id: groupId,
+        isNew: true
+      });
+    }
+
+    return newEntries;
+  });
+};
 
   const handleToggleEdit = (studentName) => {
     setEditStates(prev => ({ ...prev, [studentName]: !prev[studentName] }));
@@ -194,26 +198,48 @@ const [studentsRes, assessmentsRes, lessonPlanRes] = await Promise.all([
     }
   };
 
-  const grouped = {};
-  entries.forEach(e => {
-    const name = e.students?.name || "Unknown";
-    if (!grouped[name]) grouped[name] = {};
-    grouped[name][e.category] = e;
+    const grouped = useMemo(() => {
+    const temp = {};
+    entries.forEach(e => {
+      const name = e.students?.name || "Unknown";
+      const cat = e.category;
+      if (!temp[name]) temp[name] = {};
+
+      if (view === "weekly") {
+        temp[name][cat] = { ...e };
+      } else {
+        if (!temp[name][cat]) {
+          temp[name][cat] = { raw_score: 0, max_score: 0, count: 0 };
+        }
+        temp[name][cat].raw_score += Number(e.raw_score || 0);
+        temp[name][cat].max_score += Number(e.max_score || 0);
+        temp[name][cat].count += 1;
+      }
+    });
+    return temp;
+  }, [entries, view]);
+
+
+    const lessonPlanMap = {};
+    lessonPlans.forEach(lp => {
+    if (!lessonPlanMap[lp.category]) {
+      lessonPlanMap[lp.category] = [];
+    }
+    lessonPlanMap[lp.category].push(lp.content);
   });
 
-  const lessonPlanMap = {};
-  lessonPlans.forEach(lp => {
-    lessonPlanMap[lp.category] = lp.content;
+
+  Object.keys(lessonPlanMap).forEach(category => {
+    lessonPlanMap[category] = lessonPlanMap[category].join(", ");
   });
 
-  // const categories = [...new Set(lessonPlans.map(lp => lp.category))];
 
-  const categories = [
-  ...new Set([
-    ...lessonPlans.map(lp => lp.category),
-    ...entries.map(e => e.category)
-  ])
-];
+    const categories = [
+    ...new Set([
+      ...lessonPlans.map(lp => lp.category),
+      ...entries.map(e => e.category)
+    ])
+  ];
   return (
     <div className="flex">
       <Sidebar />
@@ -341,8 +367,19 @@ const [studentsRes, assessmentsRes, lessonPlanRes] = await Promise.all([
                 return (e.raw_score / e.max_score) * 100;
               }).filter(p => p !== null);
 
-              const overallPercentage = categoryPercentages.length > 0
-                ? Math.round(categoryPercentages.reduce((a, b) => a + b, 0) / categoryPercentages.length)
+              let totalRaw = 0;
+              let totalMax = 0;
+
+              categories.forEach(category => {
+                const e = studentEntries[category];
+                if (e && e.max_score && e.raw_score) {
+                  totalRaw += e.raw_score;
+                  totalMax += e.max_score;
+                }
+              });
+
+              const overallPercentage = totalMax > 0
+                ? Math.round((totalRaw / totalMax) * 100)
                 : " ";
 
               return (

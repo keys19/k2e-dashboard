@@ -196,4 +196,51 @@ router.get('/attendance/student-percentages', async (req, res) => {
   res.json(result);
 });
 
+router.get('/assessments/student-progress', async (req, res) => {
+  const { group_id, month } = req.query;
+  if (!group_id || !month) return res.status(400).json({ error: 'Missing group_id or month' });
+
+  // Step 1: Get all students in the group
+  const { data: students, error: studentErr } = await supabase
+    .from('students')
+    .select('id, name')
+    .eq('group_id', group_id);
+
+  if (studentErr) return res.status(500).json({ error: studentErr.message });
+
+  const studentMap = {};
+  students.forEach((s) => {
+    studentMap[s.id] = {
+      name: s.name,
+      English: { total: 0, max: 0 },
+      Arabic: { total: 0, max: 0 },
+    };
+  });
+
+  // Step 2: Get assessment scores
+  const { data: scores, error: scoreErr } = await supabase
+    .from('assessment_scores')
+    .select('student_id, language, raw_score, max_score')
+    .eq('month', month)
+    .in('student_id', students.map(s => String(s.id)));
+
+  if (scoreErr) return res.status(500).json({ error: scoreErr.message });
+
+  scores.forEach(({ student_id, language, raw_score, max_score }) => {
+    if (!studentMap[student_id]) return;
+    if (language in studentMap[student_id]) {
+      studentMap[student_id][language].total += raw_score;
+      studentMap[student_id][language].max += max_score;
+    }
+  });
+
+  const result = Object.values(studentMap).map((s) => ({
+    name: s.name,
+    English: s.English.max ? Math.round((s.English.total / s.English.max) * 100) : 0,
+    Arabic: s.Arabic.max ? Math.round((s.Arabic.total / s.Arabic.max) * 100) : 0,
+  }));
+
+  res.json(result);
+});
+
 export default router;
