@@ -55,7 +55,7 @@ app.use('/api', translateRoute);
 app.use('/student-answers', studentAnswerRoutes);
 app.use('/quiz-groups', quizGroupRoutes);
 app.use('/student-quizzes', studentQuizzesRoute);
-app.use('/', clerkRoutes);
+app.use('/clerk', clerkRoutes);
 app.get('/', (req, res) => {
   res.send('✅ Key2Enable backend is up and running!');
 });

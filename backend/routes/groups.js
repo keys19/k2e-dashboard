@@ -52,17 +52,42 @@ router.get('/for-teacher', async (req, res) => {
   res.json(groups);
 });
 
-// POST new group
 router.post('/', async (req, res) => {
-  const { name } = req.body;
+  const { name, clerk_user_id } = req.body;
 
-  const { data, error } = await supabase
+  if (!clerk_user_id || !name) {
+    return res.status(400).json({ error: 'Missing name or clerk_user_id' });
+  }
+
+  // 1. Get the teacher ID from the clerk_user_id
+  const { data: teacher, error: teacherErr } = await supabase
+    .from('teachers')
+    .select('id')
+    .eq('clerk_user_id', clerk_user_id)
+    .maybeSingle();
+
+  if (teacherErr || !teacher) {
+    return res.status(404).json({ error: 'Teacher not found' });
+  }
+
+  // 2. Insert the new group
+  const { data: newGroup, error: insertError } = await supabase
     .from('groups')
     .insert([{ name }])
-    .select();
+    .select()
+    .maybeSingle();
 
-  if (error) return res.status(500).json({ error: error.message });
-  res.status(201).json(data[0]);
+  if (insertError) return res.status(500).json({ error: insertError.message });
+
+  // 3. Link group to teacher
+  const { error: linkError } = await supabase
+    .from('group_teachers')
+    .insert([{ teacher_id: teacher.id, group_id: newGroup.id }]);
+
+  if (linkError) return res.status(500).json({ error: linkError.message });
+
+  res.status(201).json(newGroup);
 });
+
 
 export default router;

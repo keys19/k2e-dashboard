@@ -762,16 +762,27 @@ function TeacherDashboard() {
   }, [user]);
 
   useEffect(() => {
-    if (!user?.id) return;
-    axios
-      .get(`${BASE_URL}/groups/for-teacher?clerk_user_id=${user.id}`)
-      .then((res) => {
-        setGroups(res.data);
-        const stored = localStorage.getItem('selectedGroupId');
-        setSelectedGroup(stored || res.data[0]?.id);
-      })
-      .catch(() => setError('Failed to load groups'));
-  }, [user]);
+  if (!user?.id) return;
+
+  axios
+    .get(`${BASE_URL}/groups/for-teacher?clerk_user_id=${user.id}`)
+    .then((res) => {
+      setGroups(res.data);
+
+      const stored = localStorage.getItem('selectedGroupId');
+      const isValid = res.data.some((g) => g.id === stored);
+
+      const fallbackGroupId = res.data[0]?.id || '';
+
+      // if stored group is valid, use it; else default to first available group
+      const groupToUse = isValid ? stored : fallbackGroupId;
+
+      setSelectedGroup(groupToUse);
+      localStorage.setItem('selectedGroupId', groupToUse);
+    })
+    .catch(() => setError('Failed to load groups'));
+}, [user]);
+
 
   useEffect(() => {
     if (!selectedGroup) return;
@@ -886,6 +897,11 @@ function TeacherDashboard() {
   fetchStudentAssessments();
 }, [selectedGroup, selectedMonth]);
 
+useEffect(() => {
+  if (!user?.id) {
+    localStorage.removeItem('selectedGroupId');
+  }
+}, [user]);
 
   const moodTranslation = {
     Excellent: 'Excellent',

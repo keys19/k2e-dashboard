@@ -2,6 +2,7 @@
 // Description: Assessments management page for teachers
 
 import React, { useEffect, useState, useMemo } from "react";
+import { useUser } from "@clerk/clerk-react";
 import axios from "axios";
 import Sidebar from "../components/Sidebar";
 import { Button } from "@/components/ui/button";
@@ -64,6 +65,8 @@ function Assessments() {
   const [lessonPlans, setLessonPlans] = useState([]);
   const [groupId, setGroupId] = useState("");
   const [groupOptions, setGroupOptions] = useState([]);
+  const { user } = useUser();
+
 
   useEffect(() => {
     if (view === "weekly") {
@@ -98,24 +101,33 @@ function Assessments() {
   setLessonPlans(lessonPlanRes.data);
 };
 
-  const fetchGroups = async () => {
-  const res = await axios.get(`${BASE_URL}/groups`);
-  setGroupOptions(res.data);
+const fetchGroups = async () => {
+  if (!user?.id) return;
 
-  const storedGroupId = localStorage.getItem("lastSelectedGroupId");
-  const validGroup = res.data.find((g) => g.id === storedGroupId);
+  try {
+    const res = await axios.get(`${BASE_URL}/groups/for-teacher`, {
+      params: { clerk_user_id: user.id },
+    });
 
-  if (validGroup) {
-    setGroupId(validGroup.id);
-  } else {
-    setGroupId(res.data[0]?.id || "");
+    setGroupOptions(res.data);
+
+    const storedGroupId = localStorage.getItem("lastSelectedGroupId");
+    const validGroup = res.data.find((g) => g.id === storedGroupId);
+
+    if (validGroup) {
+      setGroupId(validGroup.id);
+    } else {
+      setGroupId(res.data[0]?.id || "");
+    }
+  } catch (err) {
+    console.error("Error fetching teacher's groups", err);
   }
 };
 
+useEffect(() => {
+  fetchGroups();
+}, [user]);
 
-  useEffect(() => {
-    fetchGroups();
-  }, []);
 
   useEffect(() => {
     fetchData();

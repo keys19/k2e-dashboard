@@ -1,4 +1,5 @@
 // File: CategoryModal.jsx
+
 import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -10,6 +11,7 @@ function getWeeksInMonth(monthYear) {
   const weeks = [];
   let current = new Date(year, monthIndex, 1);
   const month = current.getMonth();
+
   while (current.getMonth() === month) {
     const weekStart = new Date(current);
     const weekEnd = new Date(current);
@@ -25,10 +27,19 @@ function getWeeksInMonth(monthYear) {
     });
     current.setDate(current.getDate() + 7);
   }
+
   return weeks;
 }
 
-function CategoryModal({ initialHeader = "", initialContent = "", language, initialMetadata = {}, onClose, onSave }) {
+function CategoryModal({
+  initialHeader = "",
+  initialContent = "",
+  language,
+  initialMetadata = {},
+  onClose,
+  onSave,
+  groupOptions = [],
+}) {
   const [header, setHeader] = useState(initialHeader);
   const [content, setContent] = useState(initialContent);
   const [isEditing, setIsEditing] = useState(initialHeader === "");
@@ -37,16 +48,14 @@ function CategoryModal({ initialHeader = "", initialContent = "", language, init
   const [weekList, setWeekList] = useState([]);
   const [weekDropdownOpen, setWeekDropdownOpen] = useState(false);
   const [selectedGroups, setSelectedGroups] = useState(initialMetadata.group_ids || []);
-  const [groupOptions, setGroupOptions] = useState([]);
   const [groupDropdownOpen, setGroupDropdownOpen] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [attachedFiles, setAttachedFiles] = useState([]);
   const dropRef = useRef(null);
 
-  useEffect(() => { if (month) setWeekList(getWeeksInMonth(month)); }, [month]);
   useEffect(() => {
-    fetch(`${BASE_URL}/groups`).then((res) => res.json()).then((data) => setGroupOptions(data));
-  }, []);
+    if (month) setWeekList(getWeeksInMonth(month));
+  }, [month]);
 
   useEffect(() => {
     const fetchFiles = async () => {
@@ -68,32 +77,60 @@ function CategoryModal({ initialHeader = "", initialContent = "", language, init
         console.error("Failed to fetch files:", err);
       }
     };
+
     if (!isEditing) fetchFiles();
   }, [initialMetadata, initialHeader, isEditing]);
 
-  const toggleWeek = (week) => setSelectedWeeks((prev) => prev.includes(week) ? prev.filter((w) => w !== week) : [...prev, week]);
-  const toggleGroup = (id) => setSelectedGroups((prev) => prev.includes(id) ? prev.filter((g) => g !== id) : [...prev, id]);
+  const toggleWeek = (week) => {
+    setSelectedWeeks((prev) => prev.includes(week) ? prev.filter((w) => w !== week) : [...prev, week]);
+  };
+
+  const toggleGroup = (id) => {
+    setSelectedGroups((prev) => prev.includes(id) ? prev.filter((g) => g !== id) : [...prev, id]);
+  };
 
   const handleSave = async () => {
     const entries = [];
     for (let weekLabel of selectedWeeks) {
       const weekObj = weekList.find((w) => w.label === weekLabel);
       for (let groupId of selectedGroups) {
-        entries.push({ header, content, language, month, week: weekLabel, week_start: weekObj?.start, week_end: weekObj?.end, groupId });
+        entries.push({
+          header,
+          content,
+          language,
+          month,
+          week: weekLabel,
+          week_start: weekObj?.start,
+          week_end: weekObj?.end,
+          groupId,
+        });
       }
     }
+
     await onSave(entries);
+
     for (let entry of entries) {
-      const res = await axios.get(`${BASE_URL}/lesson-plans`, { params: { month: entry.month, week: entry.week, language: entry.language, group_id: entry.groupId } });
+      const res = await axios.get(`${BASE_URL}/lesson-plans`, {
+        params: {
+          month: entry.month,
+          week: entry.week,
+          language: entry.language,
+          group_id: entry.groupId,
+        },
+      });
+
       const matched = res.data.find((p) => p.category === entry.header);
       if (!matched || selectedFiles.length === 0) continue;
+
       const formData = new FormData();
       formData.append("lesson_plan_id", matched.id);
       selectedFiles.forEach((file) => formData.append("files", file));
       await axios.post(`${BASE_URL}/lesson-plans/upload-multiple`, formData);
+
       const filesRes = await axios.get(`${BASE_URL}/lesson-plans/${matched.id}/files`);
       setAttachedFiles(filesRes.data);
     }
+
     setIsEditing(false);
     setSelectedFiles([]);
   };
@@ -121,17 +158,24 @@ function CategoryModal({ initialHeader = "", initialContent = "", language, init
 
           <div className="mb-4 text-sm">
             {month && <p><strong>Month:</strong> {month}</p>}
-            {selectedWeeks.length > 0 && (<p><strong>Weeks:</strong> {selectedWeeks.join(", ")}</p>)}
-            {selectedGroups.length > 0 && (<p><strong>Groups:</strong><br />{selectedGroups.map((id) => {
-              const g = groupOptions.find((x) => x.id === id); return g ? g.name : id;
-            }).join(" • ")}</p>)}
+            {selectedWeeks.length > 0 && <p><strong>Weeks:</strong> {selectedWeeks.join(", ")}</p>}
+            {selectedGroups.length > 0 && (
+              <p><strong>Groups:</strong><br />
+                {selectedGroups.map((id) => {
+                  const g = groupOptions.find((x) => x.id === id);
+                  return g ? g.name : id;
+                }).join(" • ")}
+              </p>
+            )}
           </div>
 
           {isEditing && (
             <>
               <select value={month} onChange={(e) => setMonth(e.target.value)} className="mb-2 w-full p-2 border rounded">
                 <option value="">Select Month</option>
-                {["March 2025", "April 2025", "May 2025", "June 2025", "July 2025"].map((m) => <option key={m} value={m}>{m}</option>)}
+                {["March 2025", "April 2025", "May 2025", "June 2025", "July 2025"].map((m) => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
               </select>
 
               {month && (
@@ -159,7 +203,7 @@ function CategoryModal({ initialHeader = "", initialContent = "", language, init
                   </button>
                   {groupDropdownOpen && (
                     <div className="absolute z-10 w-full bg-white border rounded mt-1 max-h-40 overflow-y-auto">
-                      {groupOptions.map((g) => (
+                      {Array.isArray(groupOptions) && groupOptions.map((g) => (
                         <label key={g.id} className="flex items-center p-2 hover:bg-gray-100">
                           <input type="checkbox" checked={selectedGroups.includes(g.id)} onChange={() => toggleGroup(g.id)} className="mr-2" />
                           {g.name}
@@ -169,28 +213,26 @@ function CategoryModal({ initialHeader = "", initialContent = "", language, init
                   )}
                 </div>
               )}
-
-              {/* <label className="block text-sm mb-1 font-medium">Upload Files:</label> */}
-              {/* <div
-                ref={dropRef}
-                onDrop={handleFileDrop}
-                onDragOver={preventDefault}
-                onDragEnter={preventDefault}
-                className="border border-dashed border-gray-400 p-4 text-center text-sm rounded bg-gray-50 mb-2"
-              >
-                Drag and drop files here, or click below
-              </div>
-              <input type="file" multiple onChange={handleFileInput} className="mb-4 w-full p-2 border rounded" />
-              {selectedFiles.length > 0 && (
-                <ul className="text-xs text-gray-600 list-disc list-inside">
-                  {selectedFiles.map((f, i) => <li key={i}>{f.name}</li>)}
-                </ul>
-              )} */}
             </>
           )}
 
-          <input type="text" value={header} onChange={(e) => setHeader(e.target.value)} disabled={!isEditing} className="w-full p-3 mb-4 bg-gray-100 rounded text-black font-semibold" placeholder="Enter Category Name" />
-          <textarea value={content} onChange={(e) => setContent(e.target.value)} disabled={!isEditing} rows={5} className="w-full p-3 mb-4 bg-gray-100 rounded text-black" placeholder="Enter Lesson Plan Content" />
+          <input
+            type="text"
+            value={header}
+            onChange={(e) => setHeader(e.target.value)}
+            disabled={!isEditing}
+            className="w-full p-3 mb-4 bg-gray-100 rounded text-black font-semibold"
+            placeholder="Enter Category Name"
+          />
+
+          <textarea
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            disabled={!isEditing}
+            rows={5}
+            className="w-full p-3 mb-4 bg-gray-100 rounded text-black"
+            placeholder="Enter Lesson Plan Content"
+          />
 
           {!isEditing && attachedFiles.length > 0 && (
             <div className="mb-4">

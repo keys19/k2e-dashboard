@@ -1,6 +1,6 @@
-
 // File: LessonPlans.jsx - teachers
 import React, { useEffect, useState } from "react";
+import { useUser } from "@clerk/clerk-react";
 import axios from "axios";
 import Sidebar from "../components/Sidebar";
 import CategoryCard from "../components/CategoryCard";
@@ -25,10 +25,30 @@ function LessonPlans() {
   const [isNewCategory, setIsNewCategory] = useState(false);
   const [language, setLanguage] = useState("English");
   const [initialMetadata, setInitialMetadata] = useState({});
-  const [groups, setGroups] = useState([]);
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [groupOptions, setGroupOptions] = useState([]);
+  const [groupId, setGroupId] = useState(localStorage.getItem("lessonPlansGroupId") || "");
+
+  const { user } = useUser();
+
+  const fetchGroups = async () => {
+    if (!user?.id) return;
+    try {
+      const res = await axios.get(`${BASE_URL}/groups/for-teacher`, {
+        params: { clerk_user_id: user.id },
+      });
+      setGroupOptions(res.data);
+
+      const stored = localStorage.getItem("lessonPlansGroupId");
+      const valid = res.data.find((g) => g.id === stored);
+      setGroupId(valid ? valid.id : res.data[0]?.id || "");
+    } catch (err) {
+      console.error("Error fetching teacher's groups", err);
+    }
+  };
 
   const fetchAllLessonPlans = async () => {
+    if (!groupId) return;
     try {
       const res = await axios.get(`${BASE_URL}/lesson-plans/all`);
       setLessonPlans(res.data);
@@ -37,22 +57,18 @@ function LessonPlans() {
     }
   };
 
-  const fetchGroups = async () => {
-    try {
-      const res = await axios.get(`${BASE_URL}/groups`);
-      setGroups(res.data);
-    } catch (err) {
-      console.error("Fetching groups failed:", err);
-    }
-  };
+  useEffect(() => {
+    if (!user?.id) return;
+    fetchGroups();
+  }, [user]);
 
   useEffect(() => {
+    if (!groupId) return;
     fetchAllLessonPlans();
-    fetchGroups();
-  }, []);
+  }, [groupId]);
 
   const getGroupName = (id) => {
-    const match = groups.find((g) => g.id === id);
+    const match = groupOptions.find((g) => g.id === id);
     return match ? match.name : id;
   };
 
@@ -173,30 +189,50 @@ function LessonPlans() {
           <h1 className="text-2xl font-semibold mt-4 mb-8">Lesson Planning</h1>
         </div>
 
-        <div className="flex justify-between items-center mb-6">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="flex items-center gap-1">
-                {language} <ChevronDown className="w-4 h-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem onClick={() => setLanguage("English")}>English</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setLanguage("Arabic")}>Arabic</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+        <div className="flex justify-between items-center flex-wrap gap-3 mb-6">
+          <div className="flex gap-3">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="flex items-center gap-1">
+                  {language} <ChevronDown className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => setLanguage("English")}>English</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setLanguage("Arabic")}>Arabic</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
-          <Button
-            onClick={handleAddCategory}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
-          >
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="flex items-center gap-2">
+                  {groupOptions.find((g) => g.id === groupId)?.name || "Select Group"} <ChevronDown className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                {groupOptions.map((g) => (
+                  <DropdownMenuItem
+                    key={g.id}
+                    onClick={() => {
+                      setGroupId(g.id);
+                      localStorage.setItem("lessonPlansGroupId", g.id);
+                    }}
+                  >
+                    {g.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          <Button onClick={handleAddCategory} className="bg-blue-600 hover:bg-blue-700 text-white">
             + Add Category
           </Button>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {Object.values(groupedPlans)
-            .filter((plan) => plan.language === language)
+            .filter((plan) => plan.language === language && plan.group_ids.includes(groupId))
             .map((plan, index) => (
               <CategoryCard
                 key={index}
@@ -229,8 +265,10 @@ function LessonPlans() {
             language={language}
             onClose={() => setModalOpen(false)}
             onSave={handleModalSave}
+            groupOptions={groupOptions} // 👈 added here
           />
         )}
+
         {confirmDelete && (
           <DeleteConfirmModal
             onCancel={() => setConfirmDelete(null)}
