@@ -3,11 +3,13 @@ import { useAuth } from '@clerk/clerk-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import logo from '../assets/k2e-logo.png';
+import useRegisterTeacher from '@/utils/useRegisterTeacher';
 
 function RolePending() {
   const { signOut } = useAuth();
   const navigate = useNavigate();
 
+  useRegisterTeacher();
   const handleSignOut = () => {
     signOut(() => navigate('/'));
   };
@@ -25,7 +27,8 @@ function RolePending() {
       </h1>
 
       <p className="text-lg text-gray-700 max-w-xl mb-8 leading-relaxed">
-        Your role is being assigned by an admin. Please come back in 2 hours.
+        Your role is being assigned by an admin. Please come back and sign-in in 2 hours.
+        
         If you think this is taking too long, please contact your administrator.
       </p>
 

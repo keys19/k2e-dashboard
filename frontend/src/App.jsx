@@ -19,6 +19,7 @@ import Quizzes     from './pages/Quizzes';
 import QuizBuilder from './pages/QuizBuilder';
 import TakeQuiz from './pages/TakeQuiz';
 import QuizResults from './pages/QuizResults';
+import TeachersPage from './pages/TeachersPage';
 
 import StudentQuizzes from './pages/StudentQuizzes';
 
@@ -39,7 +40,7 @@ function App() {
 
        <Route path="/role-pending" element={<RolePending />} />
 
-      {/* 🔐 Student Routes */}
+      {/* Student Routes */}
       <Route
         path="/student/dashboard"
         element={
@@ -65,7 +66,7 @@ function App() {
         }
       />
 
-      {/* 🔐 Teacher Routes */}
+      {/* Teacher Routes */}
       <Route
         path="/teacher/dashboard"
         element={
@@ -130,6 +131,16 @@ function App() {
           </ProtectedRoute>
         }
       />
+
+      <Route
+        path="/teacher/teachers"
+        element={
+          <ProtectedRoute allowedRole="teacher" requireAdmin={true}>
+            <TeachersPage />
+          </ProtectedRoute>
+        }
+      />
+
       <Route
         path="/teacher/quizzes/new"
         element={
@@ -147,7 +158,7 @@ function App() {
         }
       />
 
-      {/* 🔐 Take Quiz Route */}
+      {/* Take Quiz Route */}
       <Route
         path="/teacher/quizzes/:id/take"
         element={
@@ -195,10 +206,10 @@ function App() {
 
 
 
-      {/* 🔓 Public Landing Page */}
+      {/* Public Landing Page */}
       <Route path="/" element={<LandingPage />} />
 
-      {/* 🔐 Auth Page with Clerk */}
+      {/* Auth Page with Clerk */}
       <Route
         path="/dashboard/*"
         element={

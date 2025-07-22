@@ -1,15 +1,25 @@
 // AddGroupModal.jsx
 import React, { useState } from 'react';
 import axios from 'axios';
+import { useUser } from "@clerk/clerk-react";
 
 function AddGroupModal({ onClose }) {
   const [name, setName] = useState('');
+  const { user } = useUser();
+
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    await axios.post('/groups', { name });
+  e.preventDefault();
+  try {
+    await axios.post(`${import.meta.env.VITE_API_BASE_URL}/groups`, {
+      name,
+      clerk_user_id: user.id,  // send logged-in teacher's Clerk ID
+    });
     onClose();
-  };
+  } catch (error) {
+    console.error('Error creating group:', error);
+  }
+};
 
   return (
     <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">

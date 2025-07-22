@@ -14,6 +14,7 @@ import shape8 from "../assets/shape8.png";
 import shape9 from "../assets/shape9.png";
 import nextIcon from "../assets/shape11.png";
 import backIcon from "../assets/shape12.png";
+import keyxGif from "../assets/tix-enter-simplix-mode.gif"; // ✅ Your uploaded GIF
 
 const ICONS = [shape1, shape2, shape3, shape4, shape5, shape6, shape7, shape8, shape9];
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -36,7 +37,8 @@ export default function TakeQuiz() {
   const [idx, setIdx] = useState(0);
   const [sel, setSel] = useState([]);
   const [busy, setBusy] = useState(true);
-  const [showIcons, setShowIcons] = useState(true); // NEW toggle state
+  const [showIcons, setShowIcons] = useState(true);
+  const [showKeyXModal, setShowKeyXModal] = useState(false); // ✅ modal state
 
   useEffect(() => {
     const fetchQuizAndStudent = async () => {
@@ -179,13 +181,42 @@ export default function TakeQuiz() {
         Back
       </button>
 
-      {/* Toggle Button (Top Right) */}
+      {/* Key-X Toggle Button */}
       <button
-        onClick={() => setShowIcons((prev) => !prev)}
+        onClick={() => {
+          if (!showIcons) {
+            setShowIcons(true);
+            setShowKeyXModal(true); // ✅ show modal when toggling ON
+          } else {
+            setShowIcons(false);
+          }
+        }}
         className="absolute top-4 right-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
       >
-        Key-X {showIcons ? "On" : "Off"}
+        Key-X {showIcons ? "Off" : "On"}
       </button>
+
+      {/* ✅ Modal */}
+      {showKeyXModal && (
+        <div className="fixed inset-0 z-50 bg-black bg-opacity-40 flex items-center justify-center px-4">
+          <div className="bg-white rounded-lg shadow-lg p-6 max-w-md text-center relative">
+            <button
+              onClick={() => setShowKeyXModal(false)}
+              className="absolute top-2 right-3 text-gray-500 text-2xl font-bold"
+            >
+              ×
+            </button>
+            <h2 className="text-xl font-semibold mb-4">
+              Please do the following sequence on Key-X to get started!
+            </h2>
+            <img
+              src={keyxGif}
+              alt="Key-X Sequence"
+              className="mx-auto max-h-64"
+            />
+          </div>
+        </div>
+      )}
 
       <h1 className="text-2xl font-bold mb-6">{quiz.title}</h1>
 
