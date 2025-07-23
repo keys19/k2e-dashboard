@@ -26,6 +26,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import LoadingScreen from '@/components/LoadingScreen';
+import moodImage from '../assets/moodd.png';
+import expressiaImage from '../assets/expressia.png';
 
 const COLORS = ['#00C49F', '#FFBB28', '#FF8042', '#0088FE', '#a855f7', '#ef4444'];
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -404,13 +406,13 @@ useEffect(() => {
           <div className="bg-white p-4 rounded shadow col-span-1">
             <div className="flex items-center justify-between mb-2">
               <a
-  href="https://mood-check-pi.vercel.app/"
-  target="_blank"
-  rel="noopener noreferrer"
-  className="text-lg font-semibold hover:underline"
->
-  Mood Board ↗
-</a>
+                href="https://mood-check-pi.vercel.app/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-lg font-semibold hover:underline"
+              >
+                Mood Board ↗
+              </a>
               <Select value={moodType} onValueChange={setMoodType}>
                 <SelectTrigger className="w-28 text-sm border-gray-300">
                   <SelectValue placeholder="Select" />
@@ -439,6 +441,51 @@ useEffect(() => {
               </Select>
             </div>
             {attendanceChart}
+          </div>
+
+          {/* <div className="bg-white p-4 rounded shadow col-span-1 md:grid-rows-2 gap-6">
+            <div className="flex items-center justify-between mb-2 row-span-1 bg-gray-50 p-2 rounded">
+              <a
+                href="https://mood-check-pi.vercel.app/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-lg font-semibold hover:underline"
+              >
+                Mood Board ↗
+              </a>
+              
+            </div>
+          </div> */}
+          <div className="bg-white p-4 rounded shadow col-span-1">
+          <h2 className="text-lg font-semibold mb-4">Tools</h2>
+          <div className="grid grid-cols-1 gap-4">
+            <a
+              href="https://mood-check-pi.vercel.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-orange-500 hover:bg-yellow-400 rounded-lg flex justify-center items-center h-36 shadow transition"
+            >
+              <h2 className='text-4xl  text-white'>😀 Mood Board</h2>
+              {/* <img
+                src={moodImage}
+                alt="Mood Board"
+                className="w-full h-full object-cover rounded-md shadow"
+              /> */}
+
+            </a>
+            <a
+              href="https://web.expressia.life/login/default"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-white hover:bg-gray-100 border rounded-lg flex justify-center items-center h-36 shadow transition"
+            >
+              <img
+                src={expressiaImage}
+                alt="Expressia"
+                className="w-full h-full object-cover rounded-md shadow hover:bg-400"
+              />
+            </a>
+          </div>
           </div>
 
           <div className="bg-white p-4 rounded shadow col-span-1 md:col-span-3 overflow-x-auto">
