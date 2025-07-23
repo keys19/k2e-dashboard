@@ -14,7 +14,8 @@ import shape8 from "../assets/shape8.png";
 import shape9 from "../assets/shape9.png";
 import nextIcon from "../assets/shape11.png";
 import backIcon from "../assets/shape12.png";
-import keyxGif from "../assets/tix-enter-simplix-mode.gif"; // ✅ Your uploaded GIF
+import keyxGif from "../assets/tix-enter-simplix-mode.gif";
+import LoadingScreen from "../components/LoadingScreen";
 
 const ICONS = [shape1, shape2, shape3, shape4, shape5, shape6, shape7, shape8, shape9];
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -37,8 +38,8 @@ export default function TakeQuiz() {
   const [idx, setIdx] = useState(0);
   const [sel, setSel] = useState([]);
   const [busy, setBusy] = useState(true);
-  const [showIcons, setShowIcons] = useState(true);
-  const [showKeyXModal, setShowKeyXModal] = useState(false); // ✅ modal state
+  const [showIcons, setShowIcons] = useState(false);
+  const [showKeyXModal, setShowKeyXModal] = useState(false);
 
   useEffect(() => {
     const fetchQuizAndStudent = async () => {
@@ -165,38 +166,49 @@ export default function TakeQuiz() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [currentSlide, idx, quiz]);
 
-  if (busy || !quiz) return <div className="p-6">Loading…</div>;
+  if (busy || !quiz) return <LoadingScreen />;
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#f3f4f6] px-6 py-10 relative">
       {/* Back Button */}
-      <button
-        onClick={() => {
-          if (idx > 0) setIdx(idx - 1);
-          else navigate("/student/quizzes");
-        }}
-        className="absolute top-4 left-4 flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
-      >
-        {showIcons && <img src={backIcon} alt="Back" className="w-9 h-9" />}
-        Back
-      </button>
+          <button
+            onClick={() => {
+              if (idx > 0) {
+                setIdx(idx - 1);
+              } else {
+                const role = user?.publicMetadata?.role;
+                if (role === "student") {
+                  navigate("/student/quizzes");
+                } else {
+                  navigate("/teacher/quizzes");
+                }
+              }
+            }}
+            className="absolute top-4 left-4 flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+          >
+            {showIcons && <img src={backIcon} alt="Back" className="w-9 h-9" />}
+            Back
+          </button>
 
-      {/* Key-X Toggle Button */}
-      <button
-        onClick={() => {
-          if (!showIcons) {
-            setShowIcons(true);
-            setShowKeyXModal(true); // ✅ show modal when toggling ON
-          } else {
-            setShowIcons(false);
-          }
-        }}
-        className="absolute top-4 right-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
-      >
-        Key-X {showIcons ? "Off" : "On"}
-      </button>
 
-      {/* ✅ Modal */}
+      <div className="absolute top-4 right-4 flex items-center gap-2">
+        <span className="text-sm font-medium">Use with Key-X</span>
+        <label className="relative inline-block w-11 h-6">
+          <input
+            type="checkbox"
+            className="sr-only peer"
+            checked={showIcons}
+            onChange={(e) => {
+              setShowIcons(e.target.checked);
+              if (e.target.checked) setShowKeyXModal(true);
+            }}
+          />
+          <div className="w-11 h-6 bg-gray-300 rounded-full peer-checked:bg-blue-600 transition-colors duration-300"></div>
+          <div className="absolute left-0.5 top-0.5 bg-white w-5 h-5 rounded-full transition-transform duration-300 transform peer-checked:translate-x-5"></div>
+        </label>
+      </div>
+
+      {/* Modal */}
       {showKeyXModal && (
         <div className="fixed inset-0 z-50 bg-black bg-opacity-40 flex items-center justify-center px-4">
           <div className="bg-white rounded-lg shadow-lg p-6 max-w-md text-center relative">
@@ -209,11 +221,7 @@ export default function TakeQuiz() {
             <h2 className="text-xl font-semibold mb-4">
               Please do the following sequence on Key-X to get started!
             </h2>
-            <img
-              src={keyxGif}
-              alt="Key-X Sequence"
-              className="mx-auto max-h-64"
-            />
+            <img src={keyxGif} alt="Key-X Sequence" className="mx-auto max-h-64" />
           </div>
         </div>
       )}
@@ -224,11 +232,7 @@ export default function TakeQuiz() {
         <h2 className="text-lg font-semibold text-center mb-4">{currentSlide.text}</h2>
 
         {currentSlide.image && (
-          <img
-            src={currentSlide.image}
-            alt="Question"
-            className="mx-auto mb-6 rounded max-h-56"
-          />
+          <img src={currentSlide.image} alt="Question" className="mx-auto mb-6 rounded max-h-56" />
         )}
 
         <div className="flex flex-col items-center justify-center">
@@ -262,7 +266,6 @@ export default function TakeQuiz() {
                         />
                       </div>
                     )}
-
                     <div className="flex-1 text-left">
                       {typeof ans.answer_text === "string" && ans.answer_text.trim() !== "" && (
                         <div className="text-xl font-semibold">{ans.answer_text}</div>
