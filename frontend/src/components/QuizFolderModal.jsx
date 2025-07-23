@@ -12,6 +12,7 @@ export default function QuizFolderModal({ isOpen, onClose, onCreated }) {
   const [quizzes, setQuizzes] = useState([]);
   const [selectedQuizIds, setSelectedQuizIds] = useState([]);
   const [loadingQuizzes, setLoadingQuizzes] = useState(true);
+  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -44,18 +45,39 @@ export default function QuizFolderModal({ isOpen, onClose, onCreated }) {
   };
 
   const handleCreate = async () => {
+    setCreating(true);
     try {
-      await axios.post(`${BASE_URL}/quiz-folders`, {
+      // Create the folder
+      const res = await axios.post(`${BASE_URL}/quiz-folders`, {
         folder_name: folderName,
-        quiz_ids: selectedQuizIds,
         clerk_user_id: user?.id,
+        quiz_ids: [], // Not needed anymore since we update directly after
       });
+
+      const folder = res.data;
+      if (!folder?.id) throw new Error("Folder ID not returned");
+
+      // Update each quiz with folder_id
+      await Promise.all(
+        selectedQuizIds.map(async (quizId) => {
+          const { data: quiz } = await axios.get(`${BASE_URL}/quizzes/${quizId}`);
+          await axios.put(`${BASE_URL}/quizzes/${quizId}`, {
+            ...quiz,
+            folder_id: folder.id,
+          });
+        })
+      );
+
+
       onCreated?.();
       onClose();
       setFolderName("");
       setSelectedQuizIds([]);
     } catch (err) {
-      console.error("Error creating folder", err);
+      console.error("Error creating folder or assigning quizzes", err);
+      alert("❌ Failed to create folder or assign quizzes.");
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -105,10 +127,10 @@ export default function QuizFolderModal({ isOpen, onClose, onCreated }) {
           </button>
           <button
             onClick={handleCreate}
+            disabled={!folderName || creating}
             className="px-4 py-2 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded"
-            disabled={!folderName}
           >
-            Create
+            {creating ? "Creating..." : "Create"}
           </button>
         </div>
       </div>

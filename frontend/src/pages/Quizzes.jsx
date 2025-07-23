@@ -1,9 +1,15 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { useUser } from "@clerk/clerk-react"; 
+import { useUser } from "@clerk/clerk-react";
 import Sidebar from "@/components/Sidebar";
-import { PlusCircle, Loader2, Trash2, Users, Pencil, FolderPlus } from "lucide-react";
+import {
+  PlusCircle,
+  Trash2,
+  Users,
+  Pencil,
+  FolderPlus,
+} from "lucide-react";
 import QuizGroupModal from "@/components/QuizGroupModal";
 import QuizFolderModal from "@/components/QuizFolderModal";
 import { FaFolder } from "react-icons/fa";
@@ -12,7 +18,7 @@ const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 export default function Quizzes() {
   const navigate = useNavigate();
-  const { user } = useUser(); 
+  const { user } = useUser();
 
   const [quizzes, setQuizzes] = useState([]);
   const [groups, setGroups] = useState([]);
@@ -29,7 +35,7 @@ export default function Quizzes() {
       const [quizRes, groupRes, folderRes] = await Promise.all([
         axios.get(`${BASE_URL}/quizzes`),
         axios.get(`${BASE_URL}/groups`),
-        axios.get(`${BASE_URL}/quiz-folders?clerk_user_id=${user?.id}`), 
+        axios.get(`${BASE_URL}/quiz-folders?clerk_user_id=${user?.id}`),
       ]);
       setQuizzes(quizRes.data);
       setGroups(groupRes.data);
@@ -43,7 +49,7 @@ export default function Quizzes() {
 
   useEffect(() => {
     if (user) {
-      fetchQuizzesAndGroups(); // ✅ Only fetch when user is available
+      fetchQuizzesAndGroups();
     }
   }, [user]);
 
@@ -58,22 +64,16 @@ export default function Quizzes() {
     }
   };
 
-  const wrapper = (content) => (
-    <div className="flex h-screen">
-      <Sidebar />
-      <div className="flex-1 flex items-center justify-center">{content}</div>
-    </div>
+  const filteredQuizzes = quizzes.filter((q) =>
+    q.quiz_name.toLowerCase().includes(searchTerm.toLowerCase())
   );
-
-  if (loading) return wrapper(<Loader2 size={32} className="animate-spin text-blue-600" />);
-  if (error) return wrapper(<p className="text-red-500">{error}</p>);
 
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar />
       <main className="flex-1 p-8 space-y-6 overflow-y-auto">
         <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Quizzes</h1>
+          <h1 className="text-3xl font-bold">Quizzes</h1>
           <div className="flex gap-3">
             <button
               onClick={() => setFolderModalOpen(true)}
@@ -99,74 +99,80 @@ export default function Quizzes() {
         />
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {quizzes
-            .filter((q) => q.quiz_name.toLowerCase().includes(searchTerm.toLowerCase()))
-            .map((q) => (
-              <div
-                key={q.quiz_id}
-                className="relative bg-white p-4 rounded shadow flex flex-col gap-2"
-              >
-                <h2 className="text-lg font-semibold">{q.quiz_name}</h2>
-                <p className="text-sm text-gray-500">A custom quiz</p>
+          {filteredQuizzes.map((q) => (
+            <div
+              key={q.quiz_id}
+              className="relative bg-white p-4 rounded shadow flex flex-col gap-2"
+            >
+              <h2 className="text-lg font-semibold">{q.quiz_name}</h2>
+              <p className="text-sm text-gray-500">A custom quiz</p>
 
-                <div className="flex gap-4 items-center">
-                  <button
-                    onClick={() => navigate(`/teacher/quizzes/${q.quiz_id}/edit`)}
-                    className="text-blue-600 hover:text-blue-800"
-                    title="Edit quiz"
-                  >
-                    <Pencil size={16} />
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setSelectedQuizId(q.quiz_id);
-                      setModalOpen(true);
-                    }}
-                    className="text-green-600 hover:text-green-800"
-                    title="Assign groups"
-                  >
-                    <Users size={16} />
-                  </button>
-
-                  <button
-                    onClick={() => navigate(`/teacher/quizzes/${q.quiz_id}/take`)}
-                    className="text-sm text-purple-600 hover:underline"
-                  >
-                    Take Quiz
-                  </button>
-                </div>
+              <div className="flex gap-4 items-center">
+                <button
+                  onClick={() => navigate(`/teacher/quizzes/${q.quiz_id}/edit`)}
+                  className="text-blue-600 hover:text-blue-800"
+                  title="Edit quiz"
+                >
+                  <Pencil size={16} />
+                </button>
 
                 <button
-                  onClick={() => handleDelete(q.quiz_id)}
-                  className="absolute bottom-3 right-3 text-gray-400 hover:text-red-600"
-                  title="Delete quiz"
+                  onClick={() => {
+                    setSelectedQuizId(q.quiz_id);
+                    setModalOpen(true);
+                  }}
+                  className="text-green-600 hover:text-green-800"
+                  title="Assign groups"
                 >
-                  <Trash2 size={18} />
+                  <Users size={16} />
+                </button>
+
+                <button
+                  onClick={() => navigate(`/teacher/quizzes/${q.quiz_id}/take`)}
+                  className="text-sm text-purple-600 hover:underline"
+                >
+                  Take Quiz
                 </button>
               </div>
-            ))}
-        </div>
 
-        {quizzes.length === 0 && (
-          <p className="text-gray-500 mt-4">No quizzes yet. Click “New Quiz” to start!</p>
-        )}
+              <button
+                onClick={() => handleDelete(q.quiz_id)}
+                className="absolute bottom-3 right-3 text-gray-400 hover:text-red-600"
+                title="Delete quiz"
+              >
+                <Trash2 size={18} />
+              </button>
+            </div>
+          ))}
+        </div>
 
         <div className="pt-10">
           <h2 className="text-2xl font-bold mb-10">Folders</h2>
           <div className="grid grid-cols-6 gap-x-20 gap-y-1">
-
             {folders.map((folder) => (
               <div
                 key={folder.id}
+                onClick={() =>
+                  navigate(`/teacher/quizzes/folder/${folder.id}`, {
+                    state: { folder },
+                  })
+                }
                 className="flex flex-col items-center space-y-2 cursor-pointer"
               >
                 <FaFolder size={110} className="text-blue-500" />
-                <span className="text-gray-700 font-medium">{folder.folder_name}</span>
+                <span className="text-gray-700 font-medium">
+                  {folder.folder_name}
+                </span>
               </div>
             ))}
           </div>
         </div>
+
+        {quizzes.length === 0 && (
+          <p className="text-gray-500 mt-4">
+            No quizzes yet. Click “New Quiz” to start!
+          </p>
+        )}
       </main>
 
       {modalOpen && (

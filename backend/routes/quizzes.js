@@ -1,4 +1,3 @@
-// backend/routes/quizzes.js
 import express from 'express';
 import supabase from '../supabaseClient.js';
 import { v4 as uuidv4 } from 'uuid';
@@ -72,12 +71,12 @@ router.get('/:id', async (req, res) => {
 
 // POST create new quiz
 router.post('/', async (req, res) => {
-  const { title, slides } = req.body;
+  const { title, slides, folder_id } = req.body;
   const quiz_id = uuidv4();
 
   const { data: quiz, error: quizError } = await supabase
     .from('quizzes')
-    .insert([{ quiz_id, quiz_name: title }])
+    .insert([{ quiz_id, quiz_name: title, folder_id: folder_id || null }])
     .select()
     .single();
 
@@ -127,15 +126,15 @@ router.post('/', async (req, res) => {
   res.status(201).json({ quiz });
 });
 
-// PUT update quiz and overwrite all questions/answers
+// PUT update quiz (rename + reassign folder + overwrite questions/answers)
 router.put('/:id', async (req, res) => {
   const quiz_id = req.params.id;
-  const { quiz_name, slides } = req.body;
+  const { quiz_name, folder_id, slides } = req.body;
 
   try {
     const { error: quizUpdateErr } = await supabase
       .from('quizzes')
-      .update({ quiz_name })
+      .update({ quiz_name, folder_id: folder_id || null })
       .eq('quiz_id', quiz_id);
 
     if (quizUpdateErr) throw new Error(quizUpdateErr.message);

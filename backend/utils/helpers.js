@@ -1,4 +1,4 @@
-import supabase from '../config/supabaseClient.js';
+import supabase from '../supabaseClient.js';
 
 export async function getTeacherByClerkId(clerk_user_id) {
   const { data, error } = await supabase

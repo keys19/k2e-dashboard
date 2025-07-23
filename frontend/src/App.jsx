@@ -22,6 +22,8 @@ import QuizResults from './pages/QuizResults';
 import TeachersPage from './pages/TeachersPage';
 
 import StudentQuizzes from './pages/StudentQuizzes';
+import FolderView from "@/pages/FolderView";
+
 
 
 function RoleRedirect() {
@@ -176,6 +178,15 @@ function App() {
           </ProtectedRoute>
         }
       />
+      
+      <Route
+          path="/teacher/quizzes/folder/:folderId"
+          element={
+            <ProtectedRoute allowedRole="teacher">
+              <FolderView />
+            </ProtectedRoute>
+          }
+        />
 
       <Route
         path="/student/quizzes"
