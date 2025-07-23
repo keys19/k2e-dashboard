@@ -1,12 +1,3 @@
-// import { defineConfig } from 'vite'
-// import react from '@vitejs/plugin-react'
-
-// // https://vite.dev/config/
-// export default defineConfig({
-//   plugins: [react()],
-// })
-
-
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
@@ -22,15 +13,15 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: undefined,
-      }
-    }
+      },
+    },
   },
   optimizeDeps: {
-    include: ['pdfjs-dist']
+    include: ['pdfjs-dist', 'react-icons/fa'],
   },
   server: {
-  proxy: {
-    '/api': 'http://localhost:3000'
-  }
-}
+    proxy: {
+      '/api': 'http://localhost:3000',
+    },
+  },
 });

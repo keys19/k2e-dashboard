@@ -1,39 +1,51 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { useUser } from "@clerk/clerk-react"; 
 import Sidebar from "@/components/Sidebar";
-import { PlusCircle, Loader2, Trash2, Users, Pencil } from "lucide-react";
+import { PlusCircle, Loader2, Trash2, Users, Pencil, FolderPlus } from "lucide-react";
 import QuizGroupModal from "@/components/QuizGroupModal";
+import QuizFolderModal from "@/components/QuizFolderModal";
+import { FaFolder } from "react-icons/fa";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 export default function Quizzes() {
   const navigate = useNavigate();
+  const { user } = useUser(); 
+
   const [quizzes, setQuizzes] = useState([]);
   const [groups, setGroups] = useState([]);
+  const [folders, setFolders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedQuizId, setSelectedQuizId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [folderModalOpen, setFolderModalOpen] = useState(false);
+
+  const fetchQuizzesAndGroups = async () => {
+    try {
+      const [quizRes, groupRes, folderRes] = await Promise.all([
+        axios.get(`${BASE_URL}/quizzes`),
+        axios.get(`${BASE_URL}/groups`),
+        axios.get(`${BASE_URL}/quiz-folders?clerk_user_id=${user?.id}`), 
+      ]);
+      setQuizzes(quizRes.data);
+      setGroups(groupRes.data);
+      setFolders(folderRes.data);
+    } catch {
+      setError("Failed to fetch quizzes, groups, or folders");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchAll = async () => {
-      try {
-        const [quizRes, groupRes] = await Promise.all([
-          axios.get(`${BASE_URL}/quizzes`),
-          axios.get(`${BASE_URL}/groups`),
-        ]);
-        setQuizzes(quizRes.data);
-        setGroups(groupRes.data);
-      } catch {
-        setError("Failed to fetch quizzes or groups");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchAll();
-  }, []);
+    if (user) {
+      fetchQuizzesAndGroups(); // ✅ Only fetch when user is available
+    }
+  }, [user]);
 
   const handleDelete = async (quiz_id) => {
     if (!window.confirm("Are you sure you want to delete this quiz?")) return;
@@ -53,30 +65,31 @@ export default function Quizzes() {
     </div>
   );
 
-  if (loading) {
-    return wrapper(<Loader2 size={32} className="animate-spin text-blue-600" />);
-  }
-
-  if (error) {
-    return wrapper(<p className="text-red-500">{error}</p>);
-  }
+  if (loading) return wrapper(<Loader2 size={32} className="animate-spin text-blue-600" />);
+  if (error) return wrapper(<p className="text-red-500">{error}</p>);
 
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar />
-      <main className="flex-1 p-8 space-y-6">
-        {/* Title */}
+      <main className="flex-1 p-8 space-y-6 overflow-y-auto">
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold">Quizzes</h1>
-          <button
-            onClick={() => navigate("/teacher/quizzes/new")}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded whitespace-nowrap"
-          >
-            <PlusCircle size={18} /> New Quiz
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setFolderModalOpen(true)}
+              className="flex items-center gap-2 bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded"
+            >
+              <FolderPlus size={18} /> New Folder
+            </button>
+            <button
+              onClick={() => navigate("/teacher/quizzes/new")}
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+            >
+              <PlusCircle size={18} /> New Quiz
+            </button>
+          </div>
         </div>
 
-        {/* Search bar below the title */}
         <input
           type="text"
           placeholder="Search quizzes..."
@@ -85,12 +98,9 @@ export default function Quizzes() {
           className="border border-gray-300 rounded px-4 py-2 w-full sm:w-96 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
 
-        {/* Quiz Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {quizzes
-            .filter((q) =>
-              q.quiz_name.toLowerCase().includes(searchTerm.toLowerCase())
-            )
+            .filter((q) => q.quiz_name.toLowerCase().includes(searchTerm.toLowerCase()))
             .map((q) => (
               <div
                 key={q.quiz_id}
@@ -101,9 +111,7 @@ export default function Quizzes() {
 
                 <div className="flex gap-4 items-center">
                   <button
-                    onClick={() =>
-                      navigate(`/teacher/quizzes/${q.quiz_id}/edit`)
-                    }
+                    onClick={() => navigate(`/teacher/quizzes/${q.quiz_id}/edit`)}
                     className="text-blue-600 hover:text-blue-800"
                     title="Edit quiz"
                   >
@@ -122,9 +130,7 @@ export default function Quizzes() {
                   </button>
 
                   <button
-                    onClick={() =>
-                      navigate(`/teacher/quizzes/${q.quiz_id}/take`)
-                    }
+                    onClick={() => navigate(`/teacher/quizzes/${q.quiz_id}/take`)}
                     className="text-sm text-purple-600 hover:underline"
                   >
                     Take Quiz
@@ -143,8 +149,24 @@ export default function Quizzes() {
         </div>
 
         {quizzes.length === 0 && (
-          <p>No quizzes yet. Click “New Quiz” to start!</p>
+          <p className="text-gray-500 mt-4">No quizzes yet. Click “New Quiz” to start!</p>
         )}
+
+        <div className="pt-10">
+          <h2 className="text-2xl font-bold mb-10">Folders</h2>
+          <div className="grid grid-cols-6 gap-x-20 gap-y-1">
+
+            {folders.map((folder) => (
+              <div
+                key={folder.id}
+                className="flex flex-col items-center space-y-2 cursor-pointer"
+              >
+                <FaFolder size={110} className="text-blue-500" />
+                <span className="text-gray-700 font-medium">{folder.folder_name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
       </main>
 
       {modalOpen && (
@@ -153,6 +175,14 @@ export default function Quizzes() {
           isOpen={modalOpen}
           onClose={() => setModalOpen(false)}
           allGroups={groups}
+        />
+      )}
+
+      {folderModalOpen && (
+        <QuizFolderModal
+          isOpen={folderModalOpen}
+          onClose={() => setFolderModalOpen(false)}
+          onCreated={fetchQuizzesAndGroups}
         />
       )}
     </div>

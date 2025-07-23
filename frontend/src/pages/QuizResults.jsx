@@ -1,6 +1,6 @@
 // src/pages/QuizResults.jsx
 import { useLocation, useNavigate } from "react-router-dom";
-import html2pdf from "html2pdf.js";
+import html2pdf from 'html2pdf.js';
 
 import shape1 from "../assets/shape1.png";
 import shape2 from "../assets/shape2.png";
