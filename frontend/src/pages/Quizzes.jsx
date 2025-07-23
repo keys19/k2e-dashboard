@@ -10,11 +10,12 @@ const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 export default function Quizzes() {
   const navigate = useNavigate();
   const [quizzes, setQuizzes] = useState([]);
-  const [groups, setGroups] = useState([]); // ✅ ADD THIS
+  const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedQuizId, setSelectedQuizId] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -24,7 +25,7 @@ export default function Quizzes() {
           axios.get(`${BASE_URL}/groups`),
         ]);
         setQuizzes(quizRes.data);
-        setGroups(groupRes.data); // ✅ SET GROUPS
+        setGroups(groupRes.data);
       } catch {
         setError("Failed to fetch quizzes or groups");
       } finally {
@@ -52,69 +53,93 @@ export default function Quizzes() {
     </div>
   );
 
-  if (loading) return wrapper(<Loader2 size={32} className="animate-spin" />);
-  if (error) return wrapper(<p className="text-red-500">{error}</p>);
+  if (loading) {
+    return wrapper(<Loader2 size={32} className="animate-spin text-blue-600" />);
+  }
+
+  if (error) {
+    return wrapper(<p className="text-red-500">{error}</p>);
+  }
 
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar />
       <main className="flex-1 p-8 space-y-6">
+        {/* Title */}
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold">Quizzes</h1>
           <button
             onClick={() => navigate("/teacher/quizzes/new")}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded whitespace-nowrap"
           >
             <PlusCircle size={18} /> New Quiz
           </button>
         </div>
 
+        {/* Search bar below the title */}
+        <input
+          type="text"
+          placeholder="Search quizzes..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="border border-gray-300 rounded px-4 py-2 w-full sm:w-96 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+
+        {/* Quiz Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {quizzes.map((q) => (
-            <div
-              key={q.quiz_id}
-              className="relative bg-white p-4 rounded shadow flex flex-col gap-2"
-            >
-              <h2 className="text-lg font-semibold">{q.quiz_name}</h2>
-              <p className="text-sm text-gray-500">A custom quiz</p>
+          {quizzes
+            .filter((q) =>
+              q.quiz_name.toLowerCase().includes(searchTerm.toLowerCase())
+            )
+            .map((q) => (
+              <div
+                key={q.quiz_id}
+                className="relative bg-white p-4 rounded shadow flex flex-col gap-2"
+              >
+                <h2 className="text-lg font-semibold">{q.quiz_name}</h2>
+                <p className="text-sm text-gray-500">A custom quiz</p>
 
-              <div className="flex gap-4 items-center">
-                <button
-                  onClick={() => navigate(`/teacher/quizzes/${q.quiz_id}/edit`)}
-                  className="text-blue-600 hover:text-blue-800"
-                  title="Edit quiz"
-                >
-                  <Pencil size={16} />
-                </button>
+                <div className="flex gap-4 items-center">
+                  <button
+                    onClick={() =>
+                      navigate(`/teacher/quizzes/${q.quiz_id}/edit`)
+                    }
+                    className="text-blue-600 hover:text-blue-800"
+                    title="Edit quiz"
+                  >
+                    <Pencil size={16} />
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setSelectedQuizId(q.quiz_id);
+                      setModalOpen(true);
+                    }}
+                    className="text-green-600 hover:text-green-800"
+                    title="Assign groups"
+                  >
+                    <Users size={16} />
+                  </button>
+
+                  <button
+                    onClick={() =>
+                      navigate(`/teacher/quizzes/${q.quiz_id}/take`)
+                    }
+                    className="text-sm text-purple-600 hover:underline"
+                  >
+                    Take Quiz
+                  </button>
+                </div>
 
                 <button
-                  onClick={() => {
-                    setSelectedQuizId(q.quiz_id);
-                    setModalOpen(true);
-                  }}
-                  className="text-green-600 hover:text-green-800"
-                  title="Assign groups"
+                  onClick={() => handleDelete(q.quiz_id)}
+                  className="absolute bottom-3 right-3 text-gray-400 hover:text-red-600"
+                  title="Delete quiz"
                 >
-                  <Users size={16} />
-                </button>
-
-                <button
-                  onClick={() => navigate(`/teacher/quizzes/${q.quiz_id}/take`)}
-                  className="text-sm text-purple-600 hover:underline"
-                >
-                  Take Quiz
+                  <Trash2 size={18} />
                 </button>
               </div>
-
-              <button
-                onClick={() => handleDelete(q.quiz_id)}
-                className="absolute bottom-3 right-3 text-gray-400 hover:text-red-600"
-                title="Delete quiz"
-              >
-                <Trash2 size={18} />
-              </button>
-            </div>
-          ))}
+            ))}
         </div>
 
         {quizzes.length === 0 && (
@@ -122,7 +147,6 @@ export default function Quizzes() {
         )}
       </main>
 
-      {/* ✅ FIX: pass allGroups prop to modal */}
       {modalOpen && (
         <QuizGroupModal
           quizId={selectedQuizId}
