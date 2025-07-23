@@ -60,7 +60,7 @@ router.get('/with-groups', async (req, res) => {
   const { data, error } = await supabase
     .from('teachers')
     .select(`
-      id, name, email, country,
+      id, name, email, country, is_new,
       group_teachers (
         groups ( id, name )
       )
@@ -81,9 +81,13 @@ router.put('/:id', async (req, res) => {
   const { id } = req.params;
   const { name, email, country } = req.body;
 
+  //  if (req.body.is_new === false) {
+  //   updatePayload.is_new = false;
+  // }
+
   const { data, error } = await supabase
     .from('teachers')
-    .update({ name, email, country })
+    .update({ name, email, country, is_new: false  })
     .eq('id', id)
     .select()
     .maybeSingle();
@@ -121,6 +125,12 @@ router.put('/:id/groups', async (req, res) => {
     .insert(inserts);
 
   if (insertErr) return res.status(500).json({ error: insertErr.message });
+
+  //Clear is_new flag if teacher is marked new
+  await supabase
+    .from('teachers')
+    .update({ is_new: false })
+    .eq('id', id);
 
   res.json({ success: true });
 });
