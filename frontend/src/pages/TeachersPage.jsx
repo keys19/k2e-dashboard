@@ -31,7 +31,8 @@ function TeachersPage() {
       const teachersData = Array.isArray(res.data) ? res.data : [];
       const formatted = teachersData.map((t) => ({
         ...t,
-        group_ids: t.groups?.map((name) => name) || [], // will override with IDs below
+        group_ids: t.groups?.map((name) => name) || [],
+        is_new: t.is_new || false, 
       }));
       setTeachers(formatted);
     } catch (err) {
@@ -71,6 +72,7 @@ function TeachersPage() {
         name: formData.name,
         email: formData.email,
         country: formData.country,
+        is_new: false,
       });
 
       // Update group-teacher mapping
@@ -143,8 +145,16 @@ function TeachersPage() {
                             className="border p-1 rounded w-full"
                           />
                         ) : (
-                          t.name
+                          <div className="flex items-center justify-center gap-1">
+      {t.name}
+      {t.is_new && (
+        <span className="ml-2 px-2 py-0.5 text-xs text-white bg-green-500 rounded-full">
+          New!
+        </span>
+      )}
+    </div>
                         )}
+                        
                       </td>
                       <td className="border p-2">
                         {editingId === t.id ? (
@@ -172,18 +182,26 @@ function TeachersPage() {
                       </td>
                       <td className="border p-2">
                         {editingId === t.id ? (
-                          <select
-                            multiple
-                            value={formData.group_ids}
-                            onChange={handleGroupChange}
-                            className="border p-1 rounded w-full"
-                          >
-                            {groups.map((g) => (
-                              <option key={g.id} value={g.id}>
-                                {g.name}
-                              </option>
-                            ))}
-                          </select>
+                          <div className="max-h-40 overflow-y-auto text-left border rounded p-2">
+                          {groups.map((g) => (
+                            <label key={g.id} className="flex items-center gap-2 mb-1">
+                              <input
+                                type="checkbox"
+                                value={g.id}
+                                checked={formData.group_ids.includes(g.id)}
+                                onChange={(e) => {
+                                  const newGroupIds = e.target.checked
+                                    ? [...formData.group_ids, g.id]
+                                    : formData.group_ids.filter((id) => id !== g.id);
+                                  setFormData((prev) => ({ ...prev, group_ids: newGroupIds }));
+                                }}
+                                className="accent-blue-600"
+                              />
+                              {g.name}
+                            </label>
+                          ))}
+                        </div>
+
                         ) : (
                           t.groups?.join(', ') || 'N/A'
                         )}
