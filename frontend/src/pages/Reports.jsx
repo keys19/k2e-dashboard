@@ -17,6 +17,9 @@ import { translateText } from "@/utils/translateText";
 import { decodeHtml } from "@/utils/decodeHTML";
 import { downloadReportPDF } from "@/utils/downloadReportPDF";
 import { downloadStudentStylePNG } from "@/utils/downloadReportPNG";
+import logo from '../assets/k2e-logo.png';
+import header from '../assets/header-strip.png';
+import footer from '../assets/footer-strip.png';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -335,7 +338,7 @@ export default function Reports() {
           </div>
         </div>
         {/* Hidden student style for PNG */}
-        <div
+        {/* <div
           id="studentStyleReport"
           className="hidden p-8 max-w-[700px] mx-auto bg-white text-black rounded shadow"
         >
@@ -347,7 +350,85 @@ export default function Reports() {
               <p dir="rtl" className="whitespace-pre-line">{decodeHtml(reportAr)}</p>
             </>
           )}
-        </div>
+        </div> */}
+
+  <div
+  id="studentStyleReport"
+  className="hidden"
+  style={{
+    width: "794px", // A4 width
+    backgroundColor: "#ffffff",
+    fontFamily: "Arial, sans-serif",
+    margin: "0 auto",
+    position: "relative",
+  }}
+>
+  {/* Header wrapper with overlaid title box */}
+  <div style={{ position: "relative", width: "100%" }}>
+    <img
+      src={header}
+      alt="Header Design"
+      style={{ width: "100%", display: "block" }}
+    />
+
+    {/* Title Box overlays the bottom part of header */}
+    <div
+      style={{
+        position: "absolute",
+        bottom: "-100px", // sits just above transition
+        left: "50%",
+        transform: "translateX(-50%)",
+        width: "92%",
+        backgroundColor: "#ffffff",
+        border: "4px solid black",
+        padding: "16px 24px",
+        textAlign: "center",
+      }}
+    >
+      <h1 style={{ fontSize: "24px", fontWeight: "bold", marginBottom: "10px" }}>
+        {students.find((s) => s.id === selectedStudentId)?.name || "Student"}’s Report for {month}
+      </h1>
+      <img
+        src={logo}
+        alt="Key2Enable"
+        style={{ height: "60px", marginInline: "auto" }}
+      />
+    </div>
+  </div>
+
+  {/* Main content with top spacing to account for overlap */}
+  <div style={{ padding: "108px 32px 32px" }}>
+    <p style={{ whiteSpace: "pre-line", fontSize: "14px", lineHeight: "1.6" }}>
+      {reportEn || "No English report yet."}
+    </p>
+
+    <hr style={{ border: "none", borderTop: "1.5px solid #888", margin: "24px 0" }} />
+
+    {reportAr && (
+      <>
+        <h3 style={{ fontWeight: "bold", marginTop: "22px", textAlign: "right" }}>
+          Arabic Version:
+        </h3>
+        <p
+          dir="rtl"
+          style={{
+            whiteSpace: "pre-line",
+            fontSize: "14px",
+            lineHeight: "1.6",
+            textAlign: "right",
+          }}
+        >
+          {decodeHtml(reportAr)}
+        </p>
+      </>
+    )}
+  </div>
+
+  {/* Footer Strip - full width */}
+  <img src={footer} alt="Footer Design" style={{ width: "100%", display: "block" }} />
+</div>
+
+
       </div>
     </div>
   );
