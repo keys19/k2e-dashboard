@@ -26,6 +26,9 @@ export default function FolderView() {
       ]);
 
       const selectedFolder = folderRes.data.find(f => f.id.toString() === folderId);
+      console.log("FOLDER ID:", folderId);
+console.log("All quizzes:", quizRes.data.map(q => ({ id: q.quiz_id, folder: q.folder_id })));
+
       const filteredQuizzes = quizRes.data.filter(q => q.folder_id?.toString() === folderId);
 
       setFolder(selectedFolder);

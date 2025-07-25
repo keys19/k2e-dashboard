@@ -98,6 +98,29 @@ export default function Quizzes() {
           className="border border-gray-300 rounded px-4 py-2 w-full sm:w-96 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
 
+        <div>
+          <h2 className="text-2xl font-bold mb-10">Folders</h2>
+          <div className="grid grid-cols-6 gap-x-20 gap-y-1">
+            {folders.map((folder) => (
+              <div
+                key={folder.id}
+                onClick={() =>
+                  navigate(`/teacher/quizzes/folder/${folder.id}`, {
+                    state: { folder },
+                  })
+                }
+                className="flex flex-col items-center space-y-2 cursor-pointer"
+              >
+                <FaFolder size={110} className="text-blue-500" />
+                <span className="text-gray-700 font-medium">
+                  {folder.folder_name}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <h2 className="text-2xl font-bold mb-6">All Quizzes</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredQuizzes.map((q) => (
             <div
@@ -146,7 +169,7 @@ export default function Quizzes() {
           ))}
         </div>
 
-        <div className="pt-10">
+        {/* <div className="pt-10">
           <h2 className="text-2xl font-bold mb-10">Folders</h2>
           <div className="grid grid-cols-6 gap-x-20 gap-y-1">
             {folders.map((folder) => (
@@ -166,7 +189,7 @@ export default function Quizzes() {
               </div>
             ))}
           </div>
-        </div>
+        </div> */}
 
         {quizzes.length === 0 && (
           <p className="text-gray-500 mt-4">
