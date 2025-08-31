@@ -173,7 +173,7 @@ function CategoryModal({
             <>
               <select value={month} onChange={(e) => setMonth(e.target.value)} className="mb-2 w-full p-2 border rounded">
                 <option value="">Select Month</option>
-                {["March 2025", "April 2025", "May 2025", "June 2025", "July 2025"].map((m) => (
+                {["March 2025", "April 2025", "May 2025", "June 2025", "July 2025", "August 2025", "September 2025","October 2025", "November 2025", "December 2025"].map((m) => (
                   <option key={m} value={m}>{m}</option>
                 ))}
               </select>

@@ -369,7 +369,7 @@ useEffect(() => {
               </SelectTrigger>
               <SelectContent>
                 {[
-                  'June', 'July'
+                  'June', 'July', 'August', 'September', 'October', 'November', 'December'
                 ].map((month) => (
                   <SelectItem
                     key={month}

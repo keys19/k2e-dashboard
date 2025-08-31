@@ -161,7 +161,7 @@ export default function Reports() {
               <SelectValue placeholder="Month" />
             </SelectTrigger>
             <SelectContent>
-              {["March 2025", "April 2025", "May 2025", "June 2025", "July 2025"].map((m) => (
+              {["March 2025", "April 2025", "May 2025", "June 2025", "July 2025", "August 2025", "September 2025","October 2025", "November 2025", "December 2025"].map((m) => (
                 <SelectItem key={m} value={m}>{m}</SelectItem>
               ))}
             </SelectContent>
