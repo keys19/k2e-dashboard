@@ -124,7 +124,7 @@ function Attendance() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                {["April 2025", "May 2025", "June 2025", "July 2025"].map((m) => (
+                {["April 2025", "May 2025", "June 2025", "July 2025", "August 2025", "September 2025","October 2025", "November 2025", "December 2025"].map((m) => (
                   <DropdownMenuItem
                     key={m}
                     onClick={() => {
